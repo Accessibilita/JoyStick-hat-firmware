@@ -113,9 +113,10 @@ int main(void)
     /* USER CODE END WHILE */
 	  //HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_7);
 	  //HAL_GPIO_Init(GPIOA, GPIO_Init);
-	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, 1);
+	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
 	  HAL_Delay(500);
-	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, 0);
+	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET);
+	  HAL_Delay(500);
 	  //HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
 	  //HAL_Delay(500);
     /* USER CODE BEGIN 3 */
@@ -370,6 +371,18 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+  // Step 2: Configure GPIO Pin PA2
+   GPIO_InitTypeDef GPIO_InitStruct_A = {0};   // Initialize structure
+
+   GPIO_InitStruct_A.Pin = GPIO_PIN_2;         // Pin PA2
+   GPIO_InitStruct_A.Mode = GPIO_MODE_OUTPUT_PP; // Set as output, push-pull mode
+   GPIO_InitStruct_A.Pull = GPIO_NOPULL;       // No pull-up or pull-down resistor
+   GPIO_InitStruct_A.Speed = GPIO_SPEED_FREQ_LOW; // Low speed
+   // Step 3: Initialize the pin
+   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct_A);
+   //HAL_GPIO_Init(GPIOD)
+
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
