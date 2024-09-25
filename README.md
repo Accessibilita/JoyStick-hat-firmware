@@ -7,7 +7,7 @@ Firmware for the JoyStick Hat Board
 
 Before starting, ensure the following are installed:
 
-- **STM32CubeIDE** (download from [STMicroelectronics](https://www.st.com/en/development-tools/stm32cubeide.html)).
+- **STM32CubeIDE** Version 1.16.1 (other won't work) (download from [STMicroelectronics](https://www.st.com/en/development-tools/stm32cubeide.html)).
 - **Git** (optional, if cloning the repository).
 
 ## 2. Clone the Repository
