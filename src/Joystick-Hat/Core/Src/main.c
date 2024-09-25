@@ -103,14 +103,51 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	/* Toggle PA2 ON */
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);  // Set PA2 high
 	HAL_Delay(500);                                     // 500ms delay
-
-	/* Toggle PA2 OFF */
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET); // Set PA2 low
-	HAL_Delay(500);                                      // 500ms delay
+	HAL_Delay(250);                                      // 500ms delay
 
+
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_SET);  // Set PD7 high
+	HAL_Delay(500);
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_RESET); // Set PD7 low
+	HAL_Delay(250);
+
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);  // Set PB5 high
+	HAL_Delay(500);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET); // Set PB5 low
+	HAL_Delay(250);
+
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_SET);  // Set PB6 high
+	HAL_Delay(500);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET); // Set PB6 low
+	HAL_Delay(250);
+
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);  // Set PB7 high
+	HAL_Delay(500);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET); // Set PB7 low
+	HAL_Delay(250);
+
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);  // Set PB8 high
+	HAL_Delay(500);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET); // Set PB8 low
+	HAL_Delay(250);
+
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);  // Set PB9 high
+	HAL_Delay(500);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET); // Set PB9 low
+	HAL_Delay(250);
+
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_0, GPIO_PIN_SET);  // Set PE0 high
+	HAL_Delay(500);
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_0, GPIO_PIN_RESET); // Set PE0 low
+	HAL_Delay(250);
+
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_1, GPIO_PIN_SET);  // Set PE1 high
+	HAL_Delay(500);
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_1, GPIO_PIN_RESET); // Set PE1 low
+	HAL_Delay(250);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
