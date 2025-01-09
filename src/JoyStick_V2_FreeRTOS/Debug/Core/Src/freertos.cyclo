@@ -1,0 +1,15 @@
+../Core/Src/freertos.c:195:13:configureTimerForRunTimeStats	1
+../Core/Src/freertos.c:200:22:getRunTimeCounterValue	1
+../Core/Src/freertos.c:211:6:MX_FREERTOS_Init	1
+../Core/Src/freertos.c:312:6:StartDefaultTask	1
+../Core/Src/freertos.c:330:6:Start_Joystick_Task	1
+../Core/Src/freertos.c:348:6:StartLED_HUD_Task	1
+../Core/Src/freertos.c:366:6:Start_Rotary_Switch_Task	1
+../Core/Src/freertos.c:384:6:Start_Button_Task	1
+../Core/Src/freertos.c:402:6:StartTask06	1
+../Core/Src/freertos.c:420:6:Start_debug_LED_Task	1
+../Core/Src/freertos.c:438:6:Start_EXP_1_Task	1
+../Core/Src/freertos.c:456:6:Start_EXP_2_Task	1
+../Core/Src/freertos.c:468:6:Callback01	1
+../Core/Src/freertos.c:476:6:Callback02	1
+../Core/Src/freertos.c:484:6:Callback03	1
