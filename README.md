@@ -1,66 +1,95 @@
-# JoyStick-hat-firmware
-Firmware for the JoyStick Hat Board 
+# JoyStick Interface Firmware
 
-# JoyStick-hat Firmware Compilation Guide with STM32CubeIDE
+Firmware for the Accessibilita joystick interface board.
 
-## 1. Prerequisites
+This repository contains the STM32 firmware that sits between the joystick/HMI hardware and the eventual motor-control link.
 
-Before starting, ensure the following are installed:
+The original codebase was largely a Cube-generated FreeRTOS starting point. Current development is replacing that scaffold with an architecture where the important boundaries are explicit: acquisition, diagnostics, safety state, requested motion, and authorized motion are separate things.
 
-- **STM32CubeIDE** Version 1.17.0 (other won't work) (download from [STMicroelectronics](https://www.st.com/en/development-tools/stm32cubeide.html)).
-- **Git** (optional, if cloning the repository).
+That matters because a joystick ADC count should never become a motor command just because enough functions passed it along.
 
-## 2. Clone the Repository
+## Active development
 
-To download the firmware source code, clone the repository from GitHub using the following command:
+The safety-first rewrite is currently being developed on:
 
-```bash
-git clone https://github.com/Accessibilita/JoyStick-hat-firmware.git
+```text
+agent/phase1-safety-foundation
 ```
 
-Alternatively, download the repository as a ZIP file and extract it.
+The STM32 project on that branch lives at:
 
-## 3. Open the Project in STM32CubeIDE
+```text
+src/JoyStick_V2_FreeRTOS/
+```
 
-- Launch **STM32CubeIDE**.
-  
-- Import the Project:
-  - Go to `File -> Open Projects from File System`.
-  - Select the root directory of the cloned or extracted project.
-  - STM32CubeIDE should detect the project automatically. Click `Finish`.
+Phase 1 is deliberately not drive-capable.
 
-## 4. Configure the Target MCU (Optional)
+It establishes the boring-but-critical foundation first:
 
-- In the project explorer, open the `.ioc` file.
-- Verify that the correct target microcontroller is selected (e.g., STM32F4).
-- Modify any peripheral or clock configurations if necessary.
+- deterministic dual-axis joystick acquisition
+- timer-triggered ADC + DMA
+- input diagnostics and freshness checking
+- explicit safety state
+- static FreeRTOS application architecture
+- task-health supervision
+- watchdog ownership
+- debugger visibility
+- reproducible firmware dependencies
+- a hard authorization boundary before anything can become a drive command
 
-## 5. Build the Project
+The basic model is:
 
-- In the **Project Explorer**, right-click the project folder.
-- Select `Build Project`.
-- The build progress will appear in the console. A successful build will show a `BUILD SUCCESSFUL` message.
+```text
+Raw inputs
+    ↓
+Diagnostics
+    ↓
+Safety state
+    ↓
+Requested command
+    ↓
+Authorization
+    ↓
+AuthorizedDriveCommand
+```
 
-## 6. Flash the Firmware to the MCU
+The current Phase-1 implementation keeps the final authorization inhibited.
 
-- Connect your STM32 Board to your PC via USB or ST-LINK programmer.
+## Development baseline
 
-- Load the Firmware:
-  - Click `Run -> Debug As -> STM32 Cortex-M C/C++ Application`.
-  - STM32CubeIDE will compile (if necessary) and load the firmware onto the MCU.
+Current Phase-1 work uses:
 
-- Start Debugging:
-  - The debugger will start automatically once flashing is complete.
-  - You can now monitor the execution or debug the firmware.
+```text
+STM32CubeIDE 2.2.0
+GNU Tools for STM32 14.3.rel1
+arm-none-eabi-gcc 14.3.1
+```
 
-## 7. Troubleshooting
+The embedded firmware dependencies remain pinned to the original STM32CubeF4 V1.28.1 project baseline.
 
-- **Build Issues**: Check that all required files and libraries are present. Review the `.ioc` file for any incorrect configurations.
+Keeping the compiler/tooling and the target firmware package as separate controlled dependencies is intentional.
 
-- **Flashing Issues**: Ensure that ST-LINK drivers are correctly installed and that the STM32 board is detected by your system. Verify jumper settings on the board (e.g., Boot0 pin).
+## Hardware reality
 
-## 8. Additional Notes
+There are known hardware constraints under active review.
 
-- **Code Customization**: Modify source files as needed, regenerate code from STM32CubeMX (if the `.ioc` file is modified), and recompile the project.
+The current board has an RS-485/UART direction conflict around the MAX3535 and PE7/PE8 mapping, so the Phase-1 firmware does not enable that physical drive path.
 
-- **Hardware Compatibility**: Ensure that the firmware and pin configurations match the STM32 board you are using.
+The joystick is also single-channel per axis, which limits the faults that can be distinguished electrically from legitimate endpoint commands.
+
+Those are documented engineering constraints, not things firmware should hide.
+
+## Status
+
+The active Phase-1 branch currently passes its source invariants and clean Debug/Release target builds.
+
+Physical board execution and fault-injection testing are still pending.
+
+A successful build is the point where hardware bring-up can start. It is not a claim that the complete machine has been qualified.
+
+For the current architecture, build instructions, dependency revisions, hardware pin map, blockers, and bring-up notes, switch to `agent/phase1-safety-foundation` and read:
+
+```text
+src/JoyStick_V2_FreeRTOS/README.md
+src/JoyStick_V2_FreeRTOS/docs/
+```
