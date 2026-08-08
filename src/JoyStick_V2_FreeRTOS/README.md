@@ -1,159 +1,172 @@
-# JoyStick Interface Firmware — Phase 1 Safety Foundation
+# JoyStick V2 Firmware
 
-This STM32F446VET6 project is the first non-drive-capable firmware phase for the Accessibilita
-joystick interface board.
+This is the active STM32F446 firmware project for the Accessibilita joystick interface.
 
-Phase 1 exists to make board bring-up, JTAG/SWD stepping, ADC/DMA verification, RTOS timing, and
-fault-injection work possible without creating a path that can command wheelchair motors.
+Phase 1 is intentionally not drive-capable. The point of this tree is to give us a deterministic, inspectable foundation for real board bring-up before motor control enters the picture.
 
-## Installation layouts
+## What changed
 
-This Phase-1 project is distributed in two ZIP layouts: a repository overlay
-and a direct STM32CubeIDE-workspace project. See
-`docs/OVERLAY_INSTALLATION.md` before extraction.
+The generated FreeRTOS scaffold has been replaced with an application architecture built around actual responsibilities:
 
+```text
+Safety Control
+RS-485 Link
+HMI
+Diagnostics
+```
 
-## Safety lock
+Safety Control owns input validation, safety state, command authorization, task health, and watchdog supervision.
 
-The build is intentionally incapable of authorizing movement:
+The important boundary is:
 
-- the current PCB's RS-485/UART direction mismatch is not worked around in software;
-- UART5 is not initialized;
-- the MAX3535 driver-enable output is held low;
-- every published drive command is zero and `drive_authorized = false`;
-- the compile-time invariant tool fails if those guards are removed;
-- configuration validity remains false until a real calibration/configuration subsystem exists.
+```text
+raw joystick
+    ↓
+diagnostics
+    ↓
+safety state
+    ↓
+requested motion
+    ↓
+authorization
+    ↓
+authorized motion
+```
 
-Do not connect this Phase 1 firmware to powered traction hardware.
+A requested command is not automatically an authorized command.
+
+Phase 1 never authorizes one.
+
+## Acquisition path
+
+The joystick path is currently:
+
+```text
+TIM2 @ 1 kHz
+    ↓
+ADC1
+    ├── PA0 / Joystick Y
+    └── PA1 / Joystick X
+    ↓
+circular DMA
+    ↓
+5-sample completed batch
+    ↓
+Safety Control Task
+    ↓
+input diagnostics
+    ↓
+safety state machine
+```
+
+The DMA side records completion sequence information so the task can detect a buffer changing while it is being copied instead of quietly consuming a half-updated sample set.
+
+## RTOS rules
+
+All application tasks and application queues are statically allocated.
+
+The safety path does not:
+
+- allocate memory
+- wait on mutexes
+- write flash
+- format log strings
+- block on peripheral I/O
+- use a FIFO for motion commands
+
+Motion/state mailboxes use overwrite semantics because the newest state is what matters. Old steering commands do not deserve a waiting room.
+
+## Watchdog
+
+The independent watchdog belongs to Safety Control.
+
+Other tasks report progress. They do not refresh the watchdog themselves.
+
+Safety Control decides whether mandatory application progress is credible enough to keep the machine alive.
+
+Debug builds freeze IWDG while halted under the debugger. Release builds do not.
+
+## Build
+
+Validated development environment:
+
+```text
+STM32CubeIDE 2.2.0
+GNU Tools for STM32 14.3.rel1
+arm-none-eabi-gcc 14.3.1
+```
+
+From this directory:
+
+```bash
+make phase1-check
+make debug
+make release
+```
+
+Current Debug and Release target builds pass.
+
+The project-owned Makefile is the build authority. STM32CubeIDE uses that same Makefile rather than maintaining a second independent description of the firmware.
+
+## Firmware dependencies
+
+The original project was created against STM32CubeF4 V1.28.1, so that is the firmware baseline retained here.
+
+We reconstructed that exact ST release instead of copying in the latest HAL and calling it close enough.
+
+See `docs/DEPENDENCIES.md` for the exact commits.
+
+## Phase-1 safety lock
+
+This build is deliberately inhibited:
+
+- no motor UART is initialized
+- MAX3535 driver enable stays low
+- `drive_authorized == false`
+- authorized forward command is zero
+- authorized turn command is zero
+- configuration validity remains false
+- source invariants fail if the core guards are removed
+
+That is not unfinished boilerplate. It is an architectural constraint.
+
+## Known hardware blockers
+
+The current PCB has a real UART/RS-485 direction conflict on PE7/PE8.
+
+The joystick also uses one potentiometer channel per axis, which means some single electrical failures cannot be distinguished from valid endpoint commands.
+
+Neither problem gets magically transformed into a software feature.
+
+Read `docs/HARDWARE_BLOCKERS.md` before enabling anything that can move.
 
 ## Project layout
 
 ```text
-App/            Hand-owned RTOS, safety-state, diagnostics, and mailbox code
-Core/           STM32 startup/peripheral initialization and interrupt integration
-Platform/       Board-level GPIO ownership wrappers
-Drivers/        CMSIS and STM32F4 HAL after dependency bootstrap
-Middlewares/    FreeRTOS after dependency bootstrap
-docs/           Architecture, pin map, IDE workflow, blockers, and coding standard
-tests/host/     Portable state-machine and diagnostic tests
-tools/          Offline dependency bootstrap and fail-closed invariant checks
+App/            application-owned RTOS and safety logic
+Core/           MCU initialization and interrupt integration
+Platform/       board-level hardware ownership wrappers
+Drivers/        STM32 HAL + CMSIS dependency baseline
+Middlewares/    FreeRTOS dependency baseline
+docs/           architecture and engineering records
+tests/host/     portable host-side tests
+tools/          invariant and project utility scripts
 ```
 
-This retains the conventional STM32CubeIDE root files and directories: `.project`, `.cproject`,
-`.settings/`, `.ioc`, `Core/`, `Drivers/`, `Middlewares/`, and the linker script. `App/` and
-`Platform/` keep hand-owned safety code outside generated peripheral files.
+## What is proven
 
-## First setup
+Software-side:
 
-Install STM32CubeF4 V1.28.1 through STM32CubeIDE, then run:
+- Phase-1 invariant checker passes
+- Debug target build passes
+- Release target build passes
+- project uses the intended CubeIDE 2.2.0 compiler
+- ELF/HEX/BIN images are generated
 
-```bash
-tools/ide_preflight.sh
-```
+Hardware-side:
 
-Or perform the steps separately:
+**not proven yet**
 
-```bash
-tools/bootstrap_cube_dependencies.sh
-make host-test
-make debug
-```
+No board execution, ADC measurement, watchdog fault injection, JTAG bring-up, or physical RS-485 test is claimed by this phase.
 
-The bootstrap script copies the installed package into `Drivers/` and `Middlewares/`. No network
-download occurs during the project build.
-
-## STM32CubeIDE
-
-Import with:
-
-```text
-File → Import → General → Existing Projects into Workspace
-```
-
-The included Debug and Release configurations call the project-owned GNU Makefile, so the IDE
-and terminal compile the same sources with the same linker script.
-
-For the debugger, select:
-
-```text
-build/Debug/JoyStick_V2_FreeRTOS.elf
-```
-
-Watch this symbol in the Expressions view:
-
-```text
-g_app_phase1_debug_snapshot
-```
-
-It exposes the current ADC values, input faults, safety state, task-health result, link state,
-and the published inhibited command. See `docs/STM32CUBEIDE_WORKFLOW.md` for breakpoints and
-bring-up checks.
-
-## Build targets
-
-```bash
-make host-test       # Portable tests plus Phase-1 invariant checks
-make phase1-check    # Fail-closed source/project checks only
-make debug           # ARM Debug ELF, HEX, BIN, and MAP
-make release         # ARM Release ELF, HEX, BIN, and MAP
-make size            # Report target image size
-make flash           # Flash Debug ELF using STM32CubeProgrammer CLI
-make clean
-```
-
-The Makefile searches the normal STM32Cube repository location and common Linux CubeIDE
-installations for the bundled GNU Arm compiler. Both can be overridden:
-
-```bash
-make debug \
-  STM32CUBE_F4_PATH="$HOME/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.1" \
-  TOOLCHAIN_PREFIX="/path/to/bin/arm-none-eabi-"
-```
-
-## Implemented Phase 1 path
-
-```text
-TIM2 1 kHz trigger
-    → ADC1 PA0/PA1 scan
-    → circular DMA
-    → half/full ISR notification every 5 ms
-    → Safety Control Task
-       → bounded sample reduction
-       → range/freshness/PG/overrun diagnostics
-       → safety-state transition
-       → zero, unauthorized command publication
-       → mandatory-task progress check
-       → conditional IWDG refresh
-```
-
-All application tasks and queues are statically allocated. No FreeRTOS timer-daemon task and no
-application heap are used.
-
-## Verification status
-
-Completed in the preparation environment:
-
-- Phase-1 invariant checks;
-- strict host compilation of portable modules;
-- state-machine and diagnostic tests;
-- AddressSanitizer and UndefinedBehaviorSanitizer run;
-- XML parsing of Eclipse project metadata.
-
-Not completed in that environment:
-
-- ARM target compilation/linking;
-- STM32CubeIDE import validation;
-- flashing or execution on the physical board.
-
-Those target checks require your installed STM32CubeF4 package, GNU Arm toolchain, IDE, probe,
-and board. The project is structured so `make debug` and the IDE build invoke the same build.
-
-## Read before hardware testing
-
-- `docs/STM32CUBEIDE_WORKFLOW.md`
-- `docs/HARDWARE_PINMAP.md`
-- `docs/HARDWARE_BLOCKERS.md`
-- `docs/PHASE1_ARCHITECTURE.md`
-- `docs/CODING_STANDARD.md`
-- `docs/CUBEMX_REGENERATION.md`
-- `docs/IMPLEMENTATION_STATUS.md`
+That comes next.

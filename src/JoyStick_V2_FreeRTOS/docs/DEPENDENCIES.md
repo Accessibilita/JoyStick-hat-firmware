@@ -1,77 +1,100 @@
 # Firmware Dependency Baseline
 
-This project intentionally vendors the STM32 firmware dependencies required to
-build the JoyStick V2 firmware reproducibly.
+The firmware dependencies are vendored deliberately.
+
+A compiler upgrade should not also mean "whatever HAL happened to be current that week."
+
+The original project referenced STM32CubeF4 V1.28.1, so that is the platform baseline retained here.
 
 ## STM32CubeF4
 
-Original project firmware baseline:
+```text
+STM32CubeF4 V1.28.1
+83778d5c95cb01695c7facbf095db3ab445532ea
+```
 
-- STM32CubeF4: V1.28.1
-- Release commit:
-  `83778d5c95cb01695c7facbf095db3ab445532ea`
-
-Official upstream:
-
-`STMicroelectronics/STM32CubeF4`
+That exact ST release is the parent package used to reconstruct the dependency tree.
 
 ## CMSIS Device F4
 
-The STM32F4 CMSIS device package is the exact Git submodule revision referenced
-by STM32CubeF4 V1.28.1:
+Exact submodule revision recorded by STM32CubeF4 V1.28.1:
 
-`5f41fb29d22773896c780052bf61e47fc924d524`
+```text
+5f41fb29d22773896c780052bf61e47fc924d524
+```
 
-Official upstream:
+Upstream:
 
-`STMicroelectronics/cmsis_device_f4`
+```text
+STMicroelectronics/cmsis_device_f4
+```
 
-## STM32F4 HAL Driver
+## STM32F4 HAL
 
-The HAL driver is the exact Git submodule revision referenced by STM32CubeF4
-V1.28.1:
+Exact submodule revision recorded by STM32CubeF4 V1.28.1:
 
-`c2e1406d7ea4b73aa42b98ddeb75a8670b1a5a16`
+```text
+c2e1406d7ea4b73aa42b98ddeb75a8670b1a5a16
+```
 
-Official upstream:
+Upstream:
 
-`STMicroelectronics/stm32f4xx_hal_driver`
+```text
+STMicroelectronics/stm32f4xx_hal_driver
+```
+
+## CMSIS Core
+
+The required CMSIS Core headers are taken from the STM32CubeF4 V1.28.1 package.
+
+Only the portions actually required by this firmware are vendored. The full CMSIS DSP/NN/example universe is not useful just because it happened to be in the upstream archive.
 
 ## FreeRTOS
 
-FreeRTOS is taken directly from:
+FreeRTOS comes directly from the STM32CubeF4 V1.28.1 package.
 
-STM32CubeF4 V1.28.1
+That release predates the newer CubeF4 layout where this middleware is brought in through the later standalone `stm32-mw-freertos` submodule arrangement.
 
-Unlike newer STM32CubeF4 repository layouts, the FreeRTOS middleware used by
-V1.28.1 is tracked as part of the parent CubeF4 package rather than through the
-later standalone stm32-mw-freertos submodule arrangement.
+Keeping the historical package layout matters if we are claiming to reproduce the original firmware baseline.
 
-## Development Toolchain
+## Development toolchain
 
-Phase 1 is currently validated using:
+Current builds are validated with:
 
-- STM32CubeIDE 2.2.0
-- GNU Tools for STM32 14.3.rel1
-- arm-none-eabi-gcc 14.3.1
+```text
+STM32CubeIDE 2.2.0
+GNU Tools for STM32 14.3.rel1
+arm-none-eabi-gcc 14.3.1
+```
 
-The IDE/toolchain version and STM32CubeF4 firmware-package version are treated as
-separate dependencies. STM32CubeF4 V1.28.1 is retained because it is the
-historical firmware baseline used by the original project, while development has
-moved forward to STM32CubeIDE 2.2.0.
+This is intentionally newer than the firmware package.
 
-## Phase 1 Build Validation
+The IDE/toolchain and the target firmware libraries are separate dependencies.
 
-The following have been successfully built with this dependency set:
+That gives us the useful combination:
 
-- Phase-1 invariant check
-- Debug firmware
-- Release firmware
-- ELF output
-- Intel HEX output
-- raw BIN output
+```text
+modern compiler + debugger
+        ↓
+controlled firmware source baseline
+        ↓
+STM32F446 target
+```
 
-Hardware execution has not yet been validated because target hardware is not
-currently available.
+instead of silently changing all three layers at once.
 
-Phase 1 remains intentionally unable to authorize physical motion.
+## Validation
+
+With this dependency set:
+
+```text
+make phase1-check    PASS
+make debug           PASS
+make release         PASS
+```
+
+Both target configurations generate ELF, HEX, and BIN images.
+
+Hardware execution has not yet been validated.
+
+Phase 1 remains incapable of authorizing drive motion.

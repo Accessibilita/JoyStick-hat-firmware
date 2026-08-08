@@ -1,43 +1,118 @@
-# Phase 1 implementation status
+# Phase 1 Implementation Status
 
-## Implemented
+Phase 1 has crossed the line from generated scaffold to real firmware.
 
-- Standard STM32CubeIDE project directories and Eclipse metadata.
-- Project-owned GNU Make build using the same source tree as the IDE.
-- Static FreeRTOS task and queue creation; dynamic allocation disabled.
-- Four-task topology: Safety Control, blocked Link, HMI-safe-state, Diagnostics.
-- 96 MHz HSE/PLL clock configuration.
-- TIM2-triggered 1 kHz ADC1 scan of PA0/PA1.
-- Circular DMA with five samples per axis per safety batch.
-- Completed-half copying with sequence and race detection.
-- Input age, range, DMA-overrun, and regulator-PG diagnostics.
-- Safety state machine and neutral qualification logic.
-- Length-one overwrite mailboxes for commands and link status.
-- Neutral, explicitly unauthorized command publication only.
-- IWDG refresh conditioned on mandatory task progress and no latched fault.
-- IWDG debug freeze before watchdog startup for JTAG/SWD stepping.
-- LED outputs forced blank and RS-485 output forced disabled.
-- Debugger snapshot symbol `g_app_phase1_debug_snapshot`.
-- Host tests and compile-time/project invariant checks.
+It is still intentionally incapable of driving the chair.
 
-## Deliberately not implemented
+Those two statements are both important.
 
-- Motor command transmission.
-- UART/RS-485 protocol.
-- Runtime configuration or calibration storage.
-- Joystick response mapping or speed profiles.
-- Button debounce and interpreted HMI actions.
-- LED driver protocol.
-- USB/service interface.
-- Any transition to a drive-capable production state.
+## Working now
 
-## Build verification status
+The current tree implements:
 
-The portable modules are compiled with strict warnings and exercised by host tests, including
-AddressSanitizer and UndefinedBehaviorSanitizer in the development environment used to prepare
-this package.
+- conventional STM32CubeIDE project metadata plus a project-owned GNU Makefile
+- STM32F446VET6 startup and peripheral foundation
+- 96 MHz HSE/PLL system clock
+- four statically allocated application tasks
+- statically allocated queues/mailboxes
+- dynamic application allocation disabled
+- TIM2-triggered 1 kHz ADC1 scan
+- PA0 and PA1 joystick acquisition
+- circular DMA
+- five samples per axis per safety batch
+- DMA half/full completion notification
+- sequence tracking and change-while-copying detection
+- acquisition freshness checking
+- ADC error/overrun tracking
+- joystick range diagnostics
+- regulator 3.3 V PG observation
+- neutral qualification
+- safety-state-machine foundation
+- explicit `AuthorizedDriveCommand`
+- one-element overwrite command mailbox
+- mandatory-task health supervision
+- Safety-Control-owned IWDG refresh
+- debugger watchdog freeze in Debug builds
+- safe LED blanking
+- forced-disabled RS-485 driver
+- debugger snapshot `g_app_phase1_debug_snapshot`
+- host-side tests
+- source/project invariant checks
 
-A complete ARM target link was not run in that environment because it did not contain
-STM32CubeF4 V1.28.1 or `arm-none-eabi-gcc`. The package contains an offline dependency bootstrap
-script and uses only standard STM32CubeF4 paths. The first local acceptance gate is therefore a
-Debug build in STM32CubeIDE and `make debug` using the same installed toolchain.
+## Deliberately absent
+
+Phase 1 does not contain:
+
+- motor command transmission
+- a production RS-485 protocol
+- a valid drive authorization state
+- persistent runtime calibration
+- production joystick response curves
+- production speed profiles
+- finished button/rotary interpretation
+- finished LED protocol
+- USB/service behavior
+- production motor-controller synchronization
+- an argument that this firmware is ready to move a person
+
+## Build status
+
+The target firmware has now been built successfully from the actual Git checkout using:
+
+```text
+STM32CubeIDE 2.2.0
+GNU Tools for STM32 14.3.rel1
+arm-none-eabi-gcc 14.3.1
+```
+
+Validated:
+
+```text
+make phase1-check    PASS
+make debug           PASS
+make release         PASS
+```
+
+Debug and Release generate ELF, Intel HEX, and raw BIN images.
+
+The firmware dependencies have also been pulled back to the exact STM32CubeF4 V1.28.1 baseline used by the original project.
+
+That gives us a reproducible combination of a modern development toolchain and a controlled historical firmware platform.
+
+## What is not validated
+
+The physical board is not currently available for acceptance testing.
+
+So we are **not** claiming validation of:
+
+- startup on the STM32F446
+- actual ADC voltage/count behavior
+- DMA timing on silicon
+- joystick noise and real mechanical center
+- open/short fault behavior
+- 3.3 V PG timing
+- watchdog reset behavior on target
+- debugger snapshot coherence on target
+- GPIO startup levels measured at the board
+- physical RS-485 behavior
+- motor-controller integration
+
+A build is evidence that the software is internally coherent enough to become a binary.
+
+It is not evidence that the complete electromechanical system is safe.
+
+## Remaining software cleanup
+
+Known non-fatal cleanup includes:
+
+- explicitly define the HAL SPI `USE_SPI_CRC` setting
+- provide deliberate newlib syscall behavior instead of relying on `nosys` warnings
+- inspect and eliminate the RWX ELF LOAD-segment warning
+- continue extending host-side fault tests
+- build the actual RS-485 protocol only after the physical link definition is resolved
+
+## Next useful work
+
+The next meaningful milestone is hardware bring-up.
+
+That means proving the assumptions in this repository against an actual board instead of adding more features on top of assumptions.

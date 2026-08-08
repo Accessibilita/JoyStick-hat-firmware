@@ -1,51 +1,84 @@
-# STM32CubeIDE compile and JTAG/SWD workflow
+# STM32CubeIDE Build and Debug Workflow
 
-## 1. Install/import the STM32CubeF4 package
+STM32CubeIDE is the editor, indexer, debugger, register viewer, and front end.
 
-Use STM32CubeIDE's embedded software package manager to install STM32CubeF4 V1.28.1, or place
-that package under:
+The project Makefile is the build authority.
+
+That keeps the terminal build and the IDE build from quietly becoming two different firmware projects.
+
+## Toolchain baseline
+
+Current development uses:
 
 ```text
-~/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.1
+STM32CubeIDE 2.2.0
+GNU Tools for STM32 14.3.rel1
+arm-none-eabi-gcc 14.3.1
 ```
 
-From a terminal in the project root:
+The Makefile explicitly prefers the compiler bundled with CubeIDE 2.2.0 when that installation exists.
 
-```bash
-tools/bootstrap_cube_dependencies.sh
-make host-test
-```
+This avoids the previous failure mode where an older CubeIDE installation under `/opt/st` silently won the wildcard lottery.
 
-The bootstrap copies CMSIS, the STM32F4 HAL, and FreeRTOS into the conventional `Drivers/` and
-`Middlewares/` folders. The IDE and command-line Makefile therefore compile the same files.
-
-## 2. Import
+## Import
 
 In STM32CubeIDE:
 
-1. **File → Import → General → Existing Projects into Workspace**.
-2. Select the project root containing `.project` and `.cproject`.
-3. Do not select **Copy projects into workspace** unless you intentionally want another copy.
-4. Select the **Debug** build configuration.
-5. Build the project.
+```text
+File
+→ Import
+→ General
+→ Existing Projects into Workspace
+```
 
-The Debug configuration calls the project-owned target `make debug`; Release calls
-`make release`. STM32CubeIDE remains the editor, indexer, build console, ELF debugger, register
-viewer, and peripheral viewer without maintaining a second generated build description.
+Select the directory containing:
 
-## 3. Debug configuration
+```text
+.project
+.cproject
+JoyStick_V2_FreeRTOS.ioc
+```
 
-Create **Run → Debug Configurations → STM32 C/C++ Application** and select:
+Do not create another copied project unless you actually want another source tree.
+
+## Build configurations
+
+Debug calls:
+
+```bash
+make debug
+```
+
+Release calls:
+
+```bash
+make release
+```
+
+Debug uses development-friendly optimization and symbols.
+
+Release builds the optimized target image.
+
+From a shell, the same acceptance sequence is:
+
+```bash
+make phase1-check
+make clean
+make debug
+make release
+```
+
+## Debug ELF
+
+Use:
 
 ```text
 build/Debug/JoyStick_V2_FreeRTOS.elf
 ```
 
-Select the STM32F446VET6 and the connected ST-LINK/JTAG probe. Use **connect under reset** for
-initial board bring-up. SWD is generally sufficient and leaves more pins available, but the
-firmware does not disable the reset-default SWJ interface.
+for the debugger.
 
-Recommended first breakpoints:
+## Useful first breakpoints
 
 ```text
 main
@@ -59,31 +92,49 @@ WatchdogSupervision_RefreshIfHealthy
 Error_Handler
 ```
 
-Recommended Expressions view symbol:
+## Debug snapshot
+
+Add this to the Expressions view:
 
 ```text
 g_app_phase1_debug_snapshot
 ```
 
-A completed snapshot has an even `snapshot_sequence`; an odd value means the debugger observed
-it during an update.
+That snapshot exists specifically so we can inspect the important application state without injecting printf traffic into the safety path.
 
-## 4. First hardware checks
+Useful fields include the raw ADC state, diagnosed input condition, safety state, health result, link state, and current inhibited command.
 
-Before connecting any motor-control cable:
+## First board session
 
-1. Verify PC9 (`RS485_DE`) remains low from reset onward.
-2. Verify PA6 and PC4 keep the LED drivers blanked.
-3. Verify TIM2 update rate is 1 kHz.
-4. Verify DMA2 Stream 0 alternates half/full callbacks every 5 ms.
-5. Move the joystick and watch the two raw ADC counts.
-6. Disconnect or fault each input only on a current-limited bench setup and confirm faults.
-7. Halt for longer than two seconds and verify the Debug build does not reset from IWDG.
-8. Run without halting and confirm the safety-loop counter advances.
+Do not start by connecting the motor-control cable.
 
-## 5. CubeMX regeneration warning
+Start by proving the boring stuff:
 
-The `.ioc` in this package is a reviewed migration manifest, not yet a proven regeneration
-source. Do not press **Generate Code** over this tree during Phase 1 acceptance. First open it in
-the installed CubeMX version, compare every pin and peripheral against `HARDWARE_PINMAP.md`, and
-generate into a temporary staging directory. Merge only a reviewed diff.
+1. reset reaches `main`
+2. clocks initialize as expected
+3. PC9 / RS485 DE stays low
+4. LED blanking outputs start safe
+5. TIM2 runs at the expected acquisition rate
+6. DMA half/full completion occurs at the expected cadence
+7. both joystick ADC channels move in the expected direction
+8. the safety snapshot advances coherently
+9. the system detects intentionally injected input faults
+10. the watchdog resets the target when mandatory progress actually stops
+
+Only after that foundation is measured on hardware does the communications link deserve to become interesting.
+
+## Debug watchdog behavior
+
+Debug builds freeze IWDG while halted by the debugger.
+
+That is there so a breakpoint does not look like a firmware hang.
+
+Release builds retain normal watchdog behavior.
+
+## CubeMX warning
+
+Do not press Generate Code over the accepted source tree and assume the result is authoritative.
+
+The `.ioc` is useful, but the reviewed KiCad design exposed real conflicts with the old generated pin configuration.
+
+See `CUBEMX_REGENERATION.md`.
