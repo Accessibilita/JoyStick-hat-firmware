@@ -1,0 +1,20 @@
+# STM32CubeIDE / Eclipse workspace output
+Debug/
+Release/
+build/
+
+# Compiled artifacts
+*.o
+*.d
+*.su
+*.cyclo
+*.elf
+*.hex
+*.bin
+*.map
+*.list
+
+# OS/editor debris
+.DS_Store
+*~
+*.swp

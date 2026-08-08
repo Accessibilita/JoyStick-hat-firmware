@@ -1,223 +1,152 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os.h"
 #include "adc.h"
-#include "fmpi2c.h"
-#include "spi.h"
-#include "usart.h"
+#include "dma.h"
 #include "gpio.h"
+#include "iwdg.h"
+#include "spi.h"
+#include "tim.h"
+#include "app_rtos.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
+static void SystemClock_Config(void);
 
-/* USER CODE END Includes */
+/*
+ * FreeRTOS application hooks.
+ *
+ * These functions have external linkage because the FreeRTOS kernel calls
+ * them by their defined hook names.  Explicit prototypes are kept here so
+ * the project can retain -Wmissing-prototypes as an error for hand-owned
+ * firmware code.
+ */
+void vApplicationStackOverflowHook(TaskHandle_t task, char *task_name);
+void vApplicationMallocFailedHook(void);
+void vApplicationGetIdleTaskMemory(
+    StaticTask_t **task_buffer,
+    StackType_t **stack_buffer,
+    uint32_t *stack_size);
 
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
 
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
-void MX_FREERTOS_Init(void);
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
-
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
 int main(void)
 {
+    HAL_Init();
+    SystemClock_Config();
 
-  /* USER CODE BEGIN 1 */
+    MX_GPIO_Init();
+    MX_DMA_Init();
+    MX_ADC1_Init();
+    MX_SPI1_Init();
+    MX_TIM2_Init();
 
-  /* USER CODE END 1 */
+#if defined(DEBUG)
+    /* Freeze IWDG before it is started so breakpoints are safe immediately. */
+    __HAL_DBGMCU_FREEZE_IWDG();
+#endif
+    MX_IWDG_Init();
 
-  /* MCU Configuration--------------------------------------------------------*/
+    if (!AppRtos_CreateStaticObjects())
+    {
+        Error_Handler();
+    }
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+    vTaskStartScheduler();
 
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
-  SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_ADC1_Init();
-  MX_SPI1_Init();
-  MX_UART5_Init();
-  MX_USART1_UART_Init();
-  MX_USART2_UART_Init();
-  MX_FMPI2C1_Init();
-  /* USER CODE BEGIN 2 */
-
-  /* USER CODE END 2 */
-
-  /* Init scheduler */
-  osKernelInitialize();
-
-  /* Call init function for freertos objects (in cmsis_os2.c) */
-  MX_FREERTOS_Init();
-
-  /* Start scheduler */
-  osKernelStart();
-
-  /* We should never get here as control is now taken by the scheduler */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
-}
-
-/**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-
-  /** Configure the main internal regulator output voltage
-  */
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
-
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
+    /* The scheduler must never return. */
     Error_Handler();
-  }
-
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-  {
-    Error_Handler();
-  }
+    return 0;
 }
 
-/* USER CODE BEGIN 4 */
-
-/* USER CODE END 4 */
-
-/**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM1 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+static void SystemClock_Config(void)
 {
-  /* USER CODE BEGIN Callback 0 */
+    RCC_OscInitTypeDef oscillator = {0};
+    RCC_ClkInitTypeDef clocks = {0};
 
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM1) {
-    HAL_IncTick();
-  }
-  /* USER CODE BEGIN Callback 1 */
+    __HAL_RCC_PWR_CLK_ENABLE();
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-  /* USER CODE END Callback 1 */
+    oscillator.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    oscillator.HSEState = RCC_HSE_ON;
+    oscillator.PLL.PLLState = RCC_PLL_ON;
+    oscillator.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    oscillator.PLL.PLLM = 8U;
+    oscillator.PLL.PLLN = 192U;
+    oscillator.PLL.PLLP = RCC_PLLP_DIV2;
+    oscillator.PLL.PLLQ = 4U;
+
+    if (HAL_RCC_OscConfig(&oscillator) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    clocks.ClockType = RCC_CLOCKTYPE_HCLK |
+                       RCC_CLOCKTYPE_SYSCLK |
+                       RCC_CLOCKTYPE_PCLK1 |
+                       RCC_CLOCKTYPE_PCLK2;
+    clocks.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+    clocks.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    clocks.APB1CLKDivider = RCC_HCLK_DIV4;
+    clocks.APB2CLKDivider = RCC_HCLK_DIV2;
+
+    if (HAL_RCC_ClockConfig(&clocks, FLASH_LATENCY_3) != HAL_OK)
+    {
+        Error_Handler();
+    }
 }
 
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
 void Error_Handler(void)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
-  /* USER CODE END Error_Handler_Debug */
+    __disable_irq();
+
+    /*
+     * Only touch ports whose clocks are already enabled. Clock-start failures
+     * can reach this function before GPIO initialization.
+     */
+    if (__HAL_RCC_GPIOC_IS_CLK_ENABLED())
+    {
+        HAL_GPIO_WritePin(RS485_DE_GPIO_Port, RS485_DE_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED_BLANK_1_GPIO_Port, LED_BLANK_1_Pin, GPIO_PIN_SET);
+    }
+
+    if (__HAL_RCC_GPIOA_IS_CLK_ENABLED())
+    {
+        HAL_GPIO_WritePin(LED_BLANK_2_GPIO_Port, LED_BLANK_2_Pin, GPIO_PIN_SET);
+    }
+
+    for (;;)
+    {
+        /* IWDG is intentionally not refreshed; reset returns to inhibited boot. */
+        __NOP();
+    }
 }
 
-#ifdef  USE_FULL_ASSERT
-/**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t *file, uint32_t line)
+void App_AssertFailed(const char *file, int line)
 {
-  /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
+    (void)file;
+    (void)line;
+    Error_Handler();
 }
-#endif /* USE_FULL_ASSERT */
+
+void vApplicationStackOverflowHook(TaskHandle_t task, char *task_name)
+{
+    (void)task;
+    (void)task_name;
+    Error_Handler();
+}
+
+void vApplicationMallocFailedHook(void)
+{
+    Error_Handler();
+}
+
+static StaticTask_t s_idle_task_control_block;
+static StackType_t s_idle_task_stack[configMINIMAL_STACK_SIZE];
+
+void vApplicationGetIdleTaskMemory(
+    StaticTask_t **task_buffer,
+    StackType_t **stack_buffer,
+    uint32_t *stack_size)
+{
+    *task_buffer = &s_idle_task_control_block;
+    *stack_buffer = s_idle_task_stack;
+    *stack_size = configMINIMAL_STACK_SIZE;
+}
