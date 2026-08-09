@@ -209,3 +209,46 @@ make release
 ```
 
 The physical MAX3535/UART path remains disabled until the board routing and motor-controller contract can be validated on hardware.
+
+## Phase 3 on `experimental`
+
+Phase 3 turns the ADC-side joystick information into a real, testable requested-command model while preserving every physical inhibition from the earlier phases.
+
+```text
+raw ADC counts
+    ↓
+validated calibration
+    ↓
+asymmetric signed Q15 normalization
+    ↓
+deadband
+    ↓
+integer response shaping
+    ↓
+maximum-speed limit
+    ↓
+AppRequestedDriveCommand
+    ↓
+Phase-2 authorization model
+    ↓
+physical command remains zero
+```
+
+The first bench reference is the CHC-104B-M2. Phase 3 stores a reference-profile identifier but does not hard-code pretend measurements for a stick we have not characterized yet.
+
+Persistent configuration is modeled as two fixed 64-byte records with generation numbers, explicit little-endian fields, semantic validation, and CRC32/IEEE. The host tests simulate a torn/corrupted newer write and prove that the older complete record remains selectable.
+
+The physical flash backend is deferred. Flash timing and brownout behavior are hardware facts, so hardware gets to answer those questions.
+
+Phase-3 acceptance adds:
+
+```bash
+make phase3-check
+make host-test
+make host-sanitize
+make host-analyze
+make debug
+make release
+```
+
+`configuration_valid` in the live Safety Control task remains false and `APP_RS485_PHYSICAL_LINK_ENABLE` remains zero. Experimental means we are allowed to get ahead on software. It does not mean the hardware facts stop mattering.

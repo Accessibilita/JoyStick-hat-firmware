@@ -17,24 +17,34 @@ PHASE2_SOURCES := test_phase2.c \
                   ../../App/Src/motor_link_state.c \
                   ../../App/Src/command_authorization.c
 PHASE2_TARGET := phase2_host_tests
-ANALYZER_TARGET := phase2_analyzer_tests
+PHASE2_ANALYZER_TARGET := phase2_analyzer_tests
+
+PHASE3_SOURCES := test_phase3.c \
+                  ../../App/Src/joystick_configuration.c \
+                  ../../App/Src/joystick_calibration.c \
+                  ../../App/Src/joystick_processing.c
+PHASE3_TARGET := phase3_host_tests
+PHASE3_ANALYZER_TARGET := phase3_analyzer_tests
 
 .PHONY: test sanitize analyze clean
 
 test: CFLAGS := $(BASE_CFLAGS)
-test: $(PHASE1_TARGET) $(PHASE2_TARGET)
+test: $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET)
 	./$(PHASE1_TARGET)
 	./$(PHASE2_TARGET)
+	./$(PHASE3_TARGET)
 
 sanitize: CFLAGS := $(BASE_CFLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer
-sanitize: clean $(PHASE1_TARGET) $(PHASE2_TARGET)
+sanitize: clean $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET)
 	./$(PHASE1_TARGET)
 	./$(PHASE2_TARGET)
+	./$(PHASE3_TARGET)
 
 analyze:
 	@command -v $(ANALYZER_CC) >/dev/null || { echo "Missing $(ANALYZER_CC) for -fanalyzer"; exit 1; }
-	$(ANALYZER_CC) $(BASE_CFLAGS) -fanalyzer $(INCLUDES) $(PHASE2_SOURCES) -o $(ANALYZER_TARGET)
-	rm -f $(ANALYZER_TARGET)
+	$(ANALYZER_CC) $(BASE_CFLAGS) -fanalyzer $(INCLUDES) $(PHASE2_SOURCES) -o $(PHASE2_ANALYZER_TARGET)
+	$(ANALYZER_CC) $(BASE_CFLAGS) -fanalyzer $(INCLUDES) $(PHASE3_SOURCES) -o $(PHASE3_ANALYZER_TARGET)
+	rm -f $(PHASE2_ANALYZER_TARGET) $(PHASE3_ANALYZER_TARGET)
 
 $(PHASE1_TARGET): $(PHASE1_SOURCES)
 	$(CC) $(CFLAGS) $(INCLUDES) $(PHASE1_SOURCES) -o $@
@@ -42,5 +52,9 @@ $(PHASE1_TARGET): $(PHASE1_SOURCES)
 $(PHASE2_TARGET): $(PHASE2_SOURCES)
 	$(CC) $(CFLAGS) $(INCLUDES) $(PHASE2_SOURCES) -o $@
 
+$(PHASE3_TARGET): $(PHASE3_SOURCES)
+	$(CC) $(CFLAGS) $(INCLUDES) $(PHASE3_SOURCES) -o $@
+
 clean:
-	rm -f $(PHASE1_TARGET) $(PHASE2_TARGET) $(ANALYZER_TARGET)
+	rm -f $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) \
+	      $(PHASE2_ANALYZER_TARGET) $(PHASE3_ANALYZER_TARGET)

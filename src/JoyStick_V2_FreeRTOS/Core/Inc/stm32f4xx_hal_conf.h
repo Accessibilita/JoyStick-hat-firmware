@@ -76,6 +76,9 @@
 #define USE_HAL_USART_REGISTER_CALLBACKS       0U
 #define USE_HAL_WWDG_REGISTER_CALLBACKS        0U
 
+/* Historical STM32CubeF4 V1.28.1 SPI sources test this optional macro. */
+#define USE_SPI_CRC                              0U
+
 #include "stm32f4xx_hal_rcc.h"
 #include "stm32f4xx_hal_rcc_ex.h"
 #include "stm32f4xx_hal_gpio.h"

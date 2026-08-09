@@ -8,7 +8,7 @@ That last part matters enough to say twice:
 
 **Raw joystick data is not a motor command.**
 
-The active implementation is currently Phase 1 of the safety-first firmware rewrite.
+Phase 1 is the safety foundation. The `experimental` branch now carries the software-validated Phase-2 motor-link model and Phase-3 joystick calibration/configuration/shaping model while hardware validation remains pending.
 
 ## Where the firmware lives
 
@@ -74,8 +74,8 @@ Not implemented yet:
 
 - motor command transmission
 - finished RS-485 protocol
-- runtime calibration storage
-- production joystick mapping
+- hardware-backed calibration storage
+- hardware-validated production joystick mapping
 - final HMI behavior
 - production motor-controller safety handshake
 - hardware qualification
@@ -213,4 +213,37 @@ src/JoyStick_V2_FreeRTOS/docs/MOTOR_PROTOCOL.md
 src/JoyStick_V2_FreeRTOS/docs/PHASE2_ARCHITECTURE.md
 src/JoyStick_V2_FreeRTOS/docs/PHASE2_TEST_PLAN.md
 src/JoyStick_V2_FreeRTOS/docs/PHASE2_IMPLEMENTATION_STATUS.md
+```
+
+## Experimental Phase 3 — joystick calibration and command shaping
+
+Phase 3 gives raw joystick ADC data a controlled path into `AppRequestedDriveCommand` without changing the physical drive lock.
+
+The CHC-104B-M2 is the initial reference joystick for bench work. Its name is recorded as a reference profile, but its endpoint counts, center, noise, deadband, direction, and production response curve are **not** invented in software. Those values wait for the real stick and board.
+
+Phase 3 adds:
+
+- bounded center and sweep calibration;
+- asymmetric per-axis min/center/max calibration;
+- guarded endpoints and explicit deadband;
+- signed Q15 normalization;
+- optional axis inversion;
+- integer linear-to-cubic response shaping;
+- Q15 maximum-speed limiting;
+- X-to-turn and Y-to-forward requested-command construction;
+- fixed 64-byte versioned configuration records;
+- CRC32/IEEE record protection;
+- redundant two-slot newest-valid selection and torn-write recovery modeling;
+- malformed-record and full-ADC-domain host campaigns.
+
+The STM32 flash backend is intentionally not implemented yet. Safety Control also continues to report configuration invalid at runtime, and the Phase-2 physical authorization boundary remains zeroed.
+
+See:
+
+```text
+src/JoyStick_V2_FreeRTOS/docs/PHASE3_ARCHITECTURE.md
+src/JoyStick_V2_FreeRTOS/docs/CONFIGURATION_FORMAT.md
+src/JoyStick_V2_FreeRTOS/docs/CHC104B_M2_REFERENCE.md
+src/JoyStick_V2_FreeRTOS/docs/PHASE3_TEST_PLAN.md
+src/JoyStick_V2_FreeRTOS/docs/PHASE3_IMPLEMENTATION_STATUS.md
 ```
