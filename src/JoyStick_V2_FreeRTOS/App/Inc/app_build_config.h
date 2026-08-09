@@ -28,6 +28,7 @@
 #define APP_INPUT_MAX_AGE_MS                    (15U)
 #define APP_LINK_MAX_AGE_MS                     (50U)
 
+#define APP_MOTOR_COMMAND_MAX_AGE_MS            (20U)
 #define APP_WATCHDOG_STARTUP_GRACE_MS           (1000U)
 #define APP_WATCHDOG_TIMEOUT_APPROX_MS          (2000U)
 

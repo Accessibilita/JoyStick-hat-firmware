@@ -184,3 +184,33 @@ Start here:
 - `docs/CUBEMX_REGENERATION.md` — why Generate Code is not currently authority
 
 This firmware is being built from the safety boundary outward. Motion comes after the system earns it, not before.
+
+## Experimental Phase 2 — motor-link software model
+
+The `experimental` branch is now moving beyond the Phase-1 foundation while the physical board is unavailable.
+
+Phase 2 adds the motor-controller communications contract entirely on the software side:
+
+- fixed 32-byte command/status frames;
+- source/destination node addressing for the daisy-chain-capable RS-485 link;
+- CRC-16/CCITT-FALSE;
+- protocol versioning;
+- command and controller sessions;
+- sequence acknowledgment;
+- link qualification and timeout handling;
+- controller-restart detection;
+- software-only logical drive authorization;
+- a fake motor controller for host fault injection.
+
+The physical RS-485 path is still locked out.
+
+That split is deliberate: `experimental` is allowed to prove more software than we can prove hardware, but the documentation keeps those categories separate.
+
+See:
+
+```text
+src/JoyStick_V2_FreeRTOS/docs/MOTOR_PROTOCOL.md
+src/JoyStick_V2_FreeRTOS/docs/PHASE2_ARCHITECTURE.md
+src/JoyStick_V2_FreeRTOS/docs/PHASE2_TEST_PLAN.md
+src/JoyStick_V2_FreeRTOS/docs/PHASE2_IMPLEMENTATION_STATUS.md
+```

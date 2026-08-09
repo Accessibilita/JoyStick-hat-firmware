@@ -53,7 +53,7 @@ OBJCOPY := $(TOOLCHAIN_PREFIX)objcopy
 SIZE := $(TOOLCHAIN_PREFIX)size
 
 # Host-only goals must not require an installed STM32 package or ARM compiler.
-NON_TARGET_GOALS := host-test phase1-check clean help
+NON_TARGET_GOALS := host-test host-sanitize host-analyze phase1-check phase2-check clean help
 ifeq ($(strip $(MAKECMDGOALS)),)
 NEED_TARGET_DEPS := 1
 else ifneq ($(strip $(filter-out $(NON_TARGET_GOALS),$(MAKECMDGOALS))),)
@@ -165,7 +165,7 @@ LDFLAGS := $(CPU_FLAGS) -TSTM32F446VETX_FLASH.ld \
   -Wl,--print-memory-usage -static
 LDLIBS := -Wl,--start-group -lc -lm -lgcc -Wl,--end-group
 
-.PHONY: all debug release target clean size flash host-test phase1-check check-tools help
+.PHONY: all debug release target clean size flash host-test host-sanitize host-analyze phase1-check phase2-check check-tools help
 all: debug
 
 debug:
@@ -220,8 +220,17 @@ flash:
 phase1-check:
 	python3 tools/check_phase1_invariants.py
 
-host-test: phase1-check
+phase2-check: phase1-check
+	python3 tools/check_phase2_invariants.py
+
+host-test: phase2-check
 	$(MAKE) -C tests/host test
+
+host-sanitize: phase2-check
+	$(MAKE) -C tests/host sanitize
+
+host-analyze: phase2-check
+	$(MAKE) -C tests/host analyze
 
 clean:
 	rm -rf build
@@ -229,9 +238,12 @@ clean:
 
 help:
 	@printf '%s\n' \
-	  'make host-test    Run portable safety tests without STM32 dependencies' \
-	  'make phase1-check Verify non-drive Phase-1 invariants' \
-	  'make debug        Build target Debug ELF/HEX/BIN' \
+	  'make host-test     Run Phase-1 + Phase-2 portable host tests' \
+	  'make host-sanitize Run host tests under ASan + UBSan' \
+	  'make host-analyze  Run GCC -fanalyzer on Phase-2 host code' \
+	  'make phase1-check  Verify original non-drive Phase-1 invariants' \
+	  'make phase2-check  Verify Phase-2 protocol + physical-inhibit invariants' \
+	  'make debug         Build target Debug ELF/HEX/BIN' \
 	  'make release      Build target Release ELF/HEX/BIN' \
 	  'make flash        Flash Debug ELF through STM32CubeProgrammer'
 

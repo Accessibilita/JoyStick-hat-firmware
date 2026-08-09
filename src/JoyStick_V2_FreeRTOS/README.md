@@ -170,3 +170,42 @@ Hardware-side:
 No board execution, ADC measurement, watchdog fault injection, JTAG bring-up, or physical RS-485 test is claimed by this phase.
 
 That comes next.
+
+## Phase 2 on `experimental`
+
+Phase 1 built the inhibited safety foundation. Phase 2 builds the motor-link protocol and authorization model on top of it without enabling the physical motor link.
+
+The new software path is:
+
+```text
+Requested drive state
+        ↓
+logical authorization
+        ↓
+address validation + 32-byte Drive Command frame
+        ↓
+fake motor controller / future transport
+        ↓
+32-byte Drive Status frame
+        ↓
+link/session/sequence validation
+        ↓
+AppMotorLinkStatus
+```
+
+Host tests are allowed to reach a logically authorized state so we can prove the decision machinery. The actual `AppAuthorizedDriveCommand` returned by the Phase-2 authorization boundary is still forced to zero with `drive_authorized = false`.
+
+That gives us a useful experimental branch without quietly turning software simulation into a hardware claim.
+
+Phase-2 acceptance adds:
+
+```bash
+make phase2-check
+make host-test
+make host-sanitize
+make host-analyze
+make debug
+make release
+```
+
+The physical MAX3535/UART path remains disabled until the board routing and motor-controller contract can be validated on hardware.

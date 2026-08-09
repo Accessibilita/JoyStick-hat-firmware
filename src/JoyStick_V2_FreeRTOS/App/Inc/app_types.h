@@ -30,6 +30,14 @@ typedef uint32_t AppFaultMask;
 #define APP_FAULT_ADC_OVERRUN                  ((AppFaultMask)(1UL << 7))
 #define APP_FAULT_POWER_GOOD_LOST               ((AppFaultMask)(1UL << 8))
 #define APP_FAULT_INPUT_INVALID                 ((AppFaultMask)(1UL << 9))
+#define APP_FAULT_PROTOCOL_CRC                 ((AppFaultMask)(1UL << 10))
+#define APP_FAULT_PROTOCOL_FRAME               ((AppFaultMask)(1UL << 11))
+#define APP_FAULT_PROTOCOL_SEQUENCE            ((AppFaultMask)(1UL << 12))
+#define APP_FAULT_PROTOCOL_SESSION             ((AppFaultMask)(1UL << 13))
+#define APP_FAULT_REMOTE_CONTROLLER            ((AppFaultMask)(1UL << 14))
+#define APP_FAULT_REMOTE_NOT_READY             ((AppFaultMask)(1UL << 15))
+#define APP_FAULT_COMMAND_STALE                ((AppFaultMask)(1UL << 16))
+#define APP_FAULT_PROTOCOL_ADDRESS             ((AppFaultMask)(1UL << 17))
 #define APP_FAULT_INTERNAL_INVARIANT           ((AppFaultMask)(1UL << 31))
 
 #define APP_FAULT_CRITICAL_MASK                \
@@ -53,9 +61,16 @@ typedef struct
     uint32_t receive_sequence;
     uint32_t last_valid_packet_ms;
     uint32_t remote_faults;
+    uint32_t link_fault_history;
+    uint32_t controller_session_id;
+    uint32_t acknowledged_command_sequence;
+    uint8_t local_node_address;
+    uint8_t remote_node_address;
+    uint8_t protocol_state;
     bool link_valid;
     bool remote_drive_ready;
     bool brakes_confirmed;
+    bool command_accepted;
 } AppMotorLinkStatus;
 
 typedef struct
