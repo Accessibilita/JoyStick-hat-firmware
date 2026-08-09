@@ -1,3 +1,9 @@
+# SPDX-License-Identifier: MPL-2.0
+#
+# Accessibilita JoyStick Interface Firmware
+# Coding standard: GhostPCB firmware rules in docs/CODING_STANDARD.md,
+# informed by MISRA C:2023, CERT C, and JPL/NASA Power of Ten.
+
 PROJECT := JoyStick_V2_FreeRTOS
 BUILD ?= Debug
 BUILD_DIR := build/$(BUILD)
@@ -51,9 +57,10 @@ CC := $(TOOLCHAIN_PREFIX)gcc
 AS := $(TOOLCHAIN_PREFIX)gcc
 OBJCOPY := $(TOOLCHAIN_PREFIX)objcopy
 SIZE := $(TOOLCHAIN_PREFIX)size
+READELF := $(TOOLCHAIN_PREFIX)readelf
 
 # Host-only goals must not require an installed STM32 package or ARM compiler.
-NON_TARGET_GOALS := host-test host-sanitize host-analyze phase1-check phase2-check phase3-check phase4-check clean help
+NON_TARGET_GOALS := host-test host-sanitize host-analyze phase1-check phase2-check phase3-check phase4-check phase5-check clean help
 ifeq ($(strip $(MAKECMDGOALS)),)
 NEED_TARGET_DEPS := 1
 else ifneq ($(strip $(filter-out $(NON_TARGET_GOALS),$(MAKECMDGOALS))),)
@@ -165,7 +172,7 @@ LDFLAGS := $(CPU_FLAGS) -TSTM32F446VETX_FLASH.ld \
   -Wl,--print-memory-usage -static
 LDLIBS := -Wl,--start-group -lc -lm -lgcc -Wl,--end-group
 
-.PHONY: all debug release target clean size flash host-test host-sanitize host-analyze phase1-check phase2-check phase3-check phase4-check check-tools help
+.PHONY: all debug release target clean size flash elf-check host-test host-sanitize host-analyze phase1-check phase2-check phase3-check phase4-check phase5-check check-tools help
 all: debug
 
 debug:
@@ -210,9 +217,13 @@ $(STARTUP_OBJECT): $(STARTUP)
 check-tools:
 	@command -v $(CC) >/dev/null || { echo "Missing $(CC)"; exit 1; }
 	@command -v $(OBJCOPY) >/dev/null || { echo "Missing $(OBJCOPY)"; exit 1; }
+	@command -v $(READELF) >/dev/null || { echo "Missing $(READELF)"; exit 1; }
 
 size:
 	$(SIZE) $(BUILD_DIR)/$(PROJECT).elf
+
+elf-check: $(BUILD_DIR)/$(PROJECT).elf
+	python3 tools/check_elf_segments.py "$(READELF)" "$(BUILD_DIR)/$(PROJECT).elf"
 
 flash:
 	STM32_Programmer_CLI -c port=SWD -w $(BUILD_DIR)/$(PROJECT).elf -v -rst
@@ -229,13 +240,16 @@ phase3-check: phase2-check
 phase4-check: phase3-check
 	python3 tools/check_phase4_invariants.py
 
-host-test: phase4-check
+phase5-check: phase4-check
+	python3 tools/check_phase5_invariants.py
+
+host-test: phase5-check
 	$(MAKE) -C tests/host test
 
-host-sanitize: phase4-check
+host-sanitize: phase5-check
 	$(MAKE) -C tests/host sanitize
 
-host-analyze: phase4-check
+host-analyze: phase5-check
 	$(MAKE) -C tests/host analyze
 
 clean:
@@ -244,13 +258,15 @@ clean:
 
 help:
 	@printf '%s\n' \
-	  'make host-test     Run Phase-1 + Phase-2 + Phase-3 + Phase-4 portable host tests' \
+	  'make host-test     Run Phase-1 through Phase-5 portable host tests' \
 	  'make host-sanitize Run all host tests under ASan + UBSan' \
-	  'make host-analyze  Run GCC -fanalyzer on Phase-2 + Phase-3 + Phase-4 host code' \
+	  'make host-analyze  Run GCC -fanalyzer through Phase-5 host code' \
 	  'make phase1-check  Verify original non-drive Phase-1 invariants' \
 	  'make phase2-check  Verify Phase-2 protocol + physical-inhibit invariants' \
 	  'make phase3-check  Verify Phase-3 config/shaping + physical-inhibit invariants' \
 	  'make phase4-check  Verify Phase-4 runtime/HMI + physical-inhibit invariants' \
+	  'make phase5-check  Verify Phase-5 simulation/license/linker invariants' \
+	  'make elf-check     Reject writable+executable ELF LOAD segments' \
 	  'make debug         Build target Debug ELF/HEX/BIN' \
 	  'make release      Build target Release ELF/HEX/BIN' \
 	  'make flash        Flash Debug ELF through STM32CubeProgrammer'

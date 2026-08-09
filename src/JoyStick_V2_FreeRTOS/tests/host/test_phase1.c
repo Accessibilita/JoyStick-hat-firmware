@@ -1,3 +1,11 @@
+/*
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * Accessibilita JoyStick Interface Firmware
+ *
+ * Coding standard: GhostPCB firmware rules in docs/CODING_STANDARD.md,
+ * informed by MISRA C:2023, CERT C, and JPL/NASA Power of Ten.
+ */
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -108,7 +116,7 @@ static void AdvanceToReady(
     assert(context->state == APP_SAFETY_READY);
 }
 
-static void Test_Phase1CannotAuthorizeDrive(void)
+static void Test_LogicalDriveStateRequiresQualifiedEnable(void)
 {
     AppSafetyContext context;
     AppSafetyObservation observation = MakeNominalObservation(0U);
@@ -118,8 +126,19 @@ static void Test_Phase1CannotAuthorizeDrive(void)
     observation.now_ms++;
     SafetyState_Step(&context, &observation);
 
+    /*
+     * Later phases use DRIVE_AUTHORIZED as a logical safety decision.  The
+     * physical output lock is enforced below this state machine by the
+     * authorization/transport boundary and is tested in Phase 2+ campaigns.
+     */
+    assert(SafetyState_IsDriveAuthorized(&context));
+    assert(context.state == APP_SAFETY_DRIVE_AUTHORIZED);
+
+    observation.enable_request = false;
+    observation.now_ms++;
+    SafetyState_Step(&context, &observation);
     assert(!SafetyState_IsDriveAuthorized(&context));
-    assert(context.state == APP_SAFETY_RECOVERABLE_INHIBIT);
+    assert(context.state == APP_SAFETY_WAIT_FOR_NEUTRAL);
 }
 
 static void Test_NeutralQualificationRestartsAfterMotion(void)
@@ -192,7 +211,7 @@ int main(void)
 {
     Test_InputDiagnosticsNominalAndFaults();
     Test_InputAgeHandlesTickWrap();
-    Test_Phase1CannotAuthorizeDrive();
+    Test_LogicalDriveStateRequiresQualifiedEnable();
     Test_NeutralQualificationRestartsAfterMotion();
     Test_CriticalFaultLatches();
     Test_HealthMonitor();

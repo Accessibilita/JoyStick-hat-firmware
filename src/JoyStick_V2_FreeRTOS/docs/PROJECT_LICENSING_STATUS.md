@@ -1,16 +1,40 @@
-# Project Licensing Status
+# Project licensing status
 
-As of Phase 4, this repository does not contain a project-level `LICENSE` file and no project SPDX identifier was found in the owned firmware source.
+Phase 5 establishes **Mozilla Public License 2.0 (MPL-2.0)** as the license for project-owned JoyStick Interface firmware source.
 
-That means Phase-4 owned C/H files state the situation directly instead of inventing a license:
+The repository root carries the complete `LICENSE` text. Project-owned source files use:
 
 ```text
-License: No project license is declared in this repository at Phase 4.
-Do not assume permission to redistribute this project-owned file.
+SPDX-License-Identifier: MPL-2.0
 ```
 
-Third-party STM32, CMSIS, and FreeRTOS sources retain their own upstream licensing terms and are not rewritten to carry the project-owned header.
+The point is to make the boundary obvious. Code we own is open under a real, standard license. Imported code does not get scrubbed and re-labeled just because it lives in the same firmware tree.
 
-Before a public release intended for reuse or redistribution, choose the project license deliberately, add the repository license text, and update the owned-file header convention to the correct SPDX identifier.
+## Project-owned MPL-2.0 scope
 
-This is a release/documentation blocker, not a runtime safety mechanism.
+The Phase-5 header audit covers project-owned code in:
+
+```text
+src/JoyStick_V2_FreeRTOS/App/
+src/JoyStick_V2_FreeRTOS/Platform/
+src/JoyStick_V2_FreeRTOS/Core/
+src/JoyStick_V2_FreeRTOS/tests/host/
+src/JoyStick_V2_FreeRTOS/tools/
+```
+
+These files also identify the GhostPCB firmware coding standard in their headers.
+
+## Third-party code keeps its own license
+
+The project does **not** replace upstream notices in imported dependencies. In particular:
+
+```text
+Drivers/
+Middlewares/
+```
+
+contain ST, CMSIS, FreeRTOS, or other third-party material whose upstream terms remain authoritative for those files.
+
+MPL-2.0 is file-level copyleft. That is useful here: modifications to MPL-covered project files stay under MPL when distributed, while those files can still be combined with separately licensed components in a larger work.
+
+Licensing is now an explicit repository property instead of a TODO hidden in a source comment.

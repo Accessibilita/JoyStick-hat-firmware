@@ -253,3 +253,11 @@ src/JoyStick_V2_FreeRTOS/docs/PHASE3_IMPLEMENTATION_STATUS.md
 Phase 4 connects the Phase-1 safety state, Phase-2 authorization model, and Phase-3 calibration/shaping code into the live application path. It adds debounced HMI state, runtime configuration selection, requested-command generation, and a much richer debugger snapshot.
 
 The target configuration backend and target HMI drive-enable mapping remain intentionally unqualified, and the physical RS-485/drive path remains locked out. See `src/JoyStick_V2_FreeRTOS/docs/PHASE4_ARCHITECTURE.md`.
+
+## Experimental Phase 5 — full-system fault simulation
+
+Phase 5 turns the existing safety, motor-link, calibration, HMI, operating-mode, and authorization code into one deterministic host-simulated control system and then abuses it.  The campaign covers controller restart, packet corruption, stale acknowledgements, silence/timeouts, configuration loss, task-health failure, power-good loss, ADC faults, service/calibration modes, reboot with a displaced stick, tick wrap, and a 20,000-step deterministic fault campaign.
+
+Logical drive authorization is now intentionally testable in software.  Physical drive authority is still independently impossible: the RS-485 transport remains compile-time blocked and the physical command boundary remains zero/unauthorized.
+
+Project-owned source is licensed under the Mozilla Public License 2.0.  Imported STM32/FreeRTOS dependencies retain their upstream licenses.

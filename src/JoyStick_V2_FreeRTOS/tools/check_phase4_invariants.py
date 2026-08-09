@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MPL-2.0
+#
+# Accessibilita JoyStick Interface Firmware
+# Coding standard: GhostPCB firmware rules in docs/CODING_STANDARD.md,
+# informed by MISRA C:2023, CERT C, and JPL/NASA Power of Ten.
 """Fail closed on Phase-4 runtime-integration safety and source-quality invariants."""
 
 from pathlib import Path
@@ -47,8 +52,8 @@ require("App/Src/operating_mode.c", "OperatingMode_GetSpeedCeilingQ15", "operati
 require("tests/host/test_phase4.c", "physical command remains inhibited", "host test must prove the physical-output lock")
 require("tests/host/test_phase4.c", "target HMI semantics remain fail-closed", "host test must prove unvalidated HMI semantics cannot enable drive")
 
-# New and materially rewritten Phase-4-owned files must carry explicit project
-# licensing status and coding-standard provenance in their file header.
+# Phase-5 licensing migration puts the declared MPL-2.0 SPDX identifier on
+# Phase-4-owned files while preserving coding-standard provenance.
 header_files = [
     "App/Inc/hmi_model.h",
     "App/Src/hmi_model.c",
@@ -76,8 +81,8 @@ for relative_path in header_files:
         errors.append(f"{relative_path}: missing Phase-4 owned file: {exc}")
         continue
     header = "\n".join(contents.splitlines()[:14])
-    if "License:" not in header:
-        errors.append(f"{relative_path}: file header does not state licensing status")
+    if "SPDX-License-Identifier: MPL-2.0" not in header:
+        errors.append(f"{relative_path}: file header does not state MPL-2.0 SPDX license")
     if "Coding standard:" not in header:
         errors.append(f"{relative_path}: file header does not identify coding standard")
     if "MISRA C:2023" not in header:

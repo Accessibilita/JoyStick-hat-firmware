@@ -1,3 +1,11 @@
+/*
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * Accessibilita JoyStick Interface Firmware
+ *
+ * Coding standard: GhostPCB firmware rules in docs/CODING_STANDARD.md,
+ * informed by MISRA C:2023, CERT C, and JPL/NASA Power of Ten.
+ */
 #include "safety_state.h"
 
 #include <stddef.h>
@@ -195,17 +203,17 @@ void SafetyState_Step(
             }
             else if (observation->enable_request)
             {
-#if APP_RS485_PHYSICAL_LINK_ENABLE == 1U
+                /*
+                 * This is logical authorization only.  Physical output policy
+                 * lives below the safety state machine in command_authorization
+                 * and the disabled transport boundary.  Keeping those concerns
+                 * separate lets host simulation exercise the complete decision
+                 * path without weakening the target's physical lockout.
+                 */
                 SafetyState_Enter(
                     context,
                     APP_SAFETY_DRIVE_AUTHORIZED,
                     observation->now_ms);
-#else
-                SafetyState_Enter(
-                    context,
-                    APP_SAFETY_RECOVERABLE_INHIBIT,
-                    observation->now_ms);
-#endif
             }
             else
             {
@@ -214,12 +222,12 @@ void SafetyState_Step(
             break;
 
         case APP_SAFETY_DRIVE_AUTHORIZED:
-#if APP_RS485_PHYSICAL_LINK_ENABLE == 0U
-            SafetyState_Enter(
-                context,
-                APP_SAFETY_RECOVERABLE_INHIBIT,
-                observation->now_ms);
-#else
+            /*
+             * DRIVE_AUTHORIZED is the logical safety decision, not a hardware
+             * write permission.  Losing any prerequisite immediately drops the
+             * state back to neutral qualification.  Physical output remains
+             * separately inhibited in the Phase-2 authorization boundary.
+             */
             if (!(observation->configuration_valid &&
                   observation->input_valid &&
                   observation->link_valid &&
@@ -232,7 +240,6 @@ void SafetyState_Step(
                     APP_SAFETY_WAIT_FOR_NEUTRAL,
                     observation->now_ms);
             }
-#endif
             break;
 
         case APP_SAFETY_RECOVERABLE_INHIBIT:

@@ -258,3 +258,11 @@ make release
 The application now runs the real software pipeline from validated configuration and joystick processing through safety observation and command authorization. Host tests are allowed to inject valid configuration/HMI state and prove non-zero requested motion. The target build still cannot turn that into physical motion.
 
 The HMI task debounces and publishes raw button/rotary state, but final drive-enable semantics remain invalid until hardware testing. The target configuration storage backend likewise reports unavailable until STM32 flash behavior is validated.
+
+## Phase 5 on `experimental`
+
+Phase 5 is the whole-system software abuse pass.  A bounded deterministic simulator runs the real application modules together and injects faults at their boundaries rather than testing each module in isolation.
+
+The safety state may reach logical `DRIVE_AUTHORIZED` in host simulation, but that state is not physical permission.  `CommandAuthorization_Evaluate()` and the disabled RS-485 transport remain the independent physical lock.  Target configuration storage and final HMI enable semantics remain unqualified until hardware validation.
+
+The target linker also has an explicit RX FLASH / RW RAM program-header contract, checked with `readelf` so writable+executable LOAD segments are a build failure.

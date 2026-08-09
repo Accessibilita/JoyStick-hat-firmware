@@ -1,3 +1,11 @@
+/*
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * Accessibilita JoyStick Interface Firmware
+ *
+ * Coding standard: GhostPCB firmware rules in docs/CODING_STANDARD.md,
+ * informed by MISRA C:2023, CERT C, and JPL/NASA Power of Ten.
+ */
 #include "motor_link_state.h"
 
 #include <stddef.h>
@@ -184,6 +192,13 @@ MotorLinkProcessResult MotorLinkState_ProcessStatus(
         (status->status == MOTOR_PROTOCOL_STATUS_REMOTE_FAULT))
     {
         context->fault_history |= MOTOR_LINK_FAULT_REMOTE;
+
+        /*
+         * A remote fault invalidates the pre-fault qualification history.
+         * Recovery must prove two fresh, valid status frames after the fault
+         * clears; one good frame is not allowed to inherit old confidence.
+         */
+        context->consecutive_valid_frames = 0U;
         context->state = MOTOR_LINK_FAULT;
         return MOTOR_LINK_PROCESS_REMOTE_FAULT;
     }
@@ -191,7 +206,7 @@ MotorLinkProcessResult MotorLinkState_ProcessStatus(
     if (status->status != MOTOR_PROTOCOL_STATUS_OK)
     {
         context->fault_history |= MOTOR_LINK_FAULT_STATUS_REJECTED;
-        context->state = MOTOR_LINK_SYNCHRONIZING;
+        MotorLinkState_EnterSynchronizing(context);
         return MOTOR_LINK_PROCESS_STATUS_REJECTED;
     }
 

@@ -1,3 +1,12 @@
+/*
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * Accessibilita JoyStick Interface Firmware
+ *
+ * Coding standard: GhostPCB firmware rules in docs/CODING_STANDARD.md,
+ * informed by MISRA C:2023, CERT C, and JPL/NASA Power of Ten.
+ */
+
 ENTRY(Reset_Handler)
 
 _estack = ORIGIN(RAM) + LENGTH(RAM);
@@ -10,6 +19,16 @@ MEMORY
     FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 512K
 }
 
+/*
+ * Keep executable FLASH and writable RAM in distinct ELF LOAD segments.
+ * FLAGS(5) = PF_R | PF_X; FLAGS(6) = PF_R | PF_W.
+ */
+PHDRS
+{
+    flash PT_LOAD FLAGS(5);
+    ram   PT_LOAD FLAGS(6);
+}
+
 SECTIONS
 {
     .isr_vector :
@@ -17,7 +36,7 @@ SECTIONS
         . = ALIGN(4);
         KEEP(*(.isr_vector))
         . = ALIGN(4);
-    } >FLASH
+    } >FLASH :flash
 
     .text :
     {
@@ -31,7 +50,7 @@ SECTIONS
         KEEP(*(.fini))
         . = ALIGN(4);
         _etext = .;
-    } >FLASH
+    } >FLASH :flash
 
     .rodata :
     {
@@ -39,26 +58,26 @@ SECTIONS
         *(.rodata)
         *(.rodata*)
         . = ALIGN(4);
-    } >FLASH
+    } >FLASH :flash
 
     .ARM.extab :
     {
         *(.ARM.extab* .gnu.linkonce.armextab.*)
-    } >FLASH
+    } >FLASH :flash
 
     .ARM :
     {
         __exidx_start = .;
         *(.ARM.exidx*)
         __exidx_end = .;
-    } >FLASH
+    } >FLASH :flash
 
     .preinit_array :
     {
         PROVIDE_HIDDEN(__preinit_array_start = .);
         KEEP(*(.preinit_array*))
         PROVIDE_HIDDEN(__preinit_array_end = .);
-    } >FLASH
+    } >FLASH :flash
 
     .init_array :
     {
@@ -66,7 +85,7 @@ SECTIONS
         KEEP(*(SORT(.init_array.*)))
         KEEP(*(.init_array*))
         PROVIDE_HIDDEN(__init_array_end = .);
-    } >FLASH
+    } >FLASH :flash
 
     .fini_array :
     {
@@ -74,7 +93,7 @@ SECTIONS
         KEEP(*(SORT(.fini_array.*)))
         KEEP(*(.fini_array*))
         PROVIDE_HIDDEN(__fini_array_end = .);
-    } >FLASH
+    } >FLASH :flash
 
     _sidata = LOADADDR(.data);
 
@@ -86,7 +105,7 @@ SECTIONS
         *(.data*)
         . = ALIGN(4);
         _edata = .;
-    } >RAM AT> FLASH
+    } >RAM AT> FLASH :ram
 
     .bss :
     {
@@ -99,7 +118,7 @@ SECTIONS
         . = ALIGN(4);
         _ebss = .;
         __bss_end__ = _ebss;
-    } >RAM
+    } >RAM :ram
 
     ._user_heap_stack :
     {
@@ -109,7 +128,7 @@ SECTIONS
         . = . + _Min_Heap_Size;
         . = . + _Min_Stack_Size;
         . = ALIGN(8);
-    } >RAM
+    } >RAM :ram
 
     .ARM.attributes 0 : { *(.ARM.attributes) }
 }

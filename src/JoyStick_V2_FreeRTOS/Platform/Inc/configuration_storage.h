@@ -1,12 +1,12 @@
 /*
- * Accessibilita JoyStick Interface Firmware
+ * SPDX-License-Identifier: MPL-2.0
  *
- * License: No project license is declared in this repository at Phase 4.
- * Do not assume permission to redistribute this project-owned file.
+ * Accessibilita JoyStick Interface Firmware
  *
  * Coding standard: GhostPCB firmware rules in docs/CODING_STANDARD.md,
  * informed by MISRA C:2023, CERT C, and JPL/NASA Power of Ten.
  */
+
 #ifndef CONFIGURATION_STORAGE_H
 #define CONFIGURATION_STORAGE_H
 
