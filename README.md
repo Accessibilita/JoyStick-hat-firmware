@@ -247,3 +247,9 @@ src/JoyStick_V2_FreeRTOS/docs/CHC104B_M2_REFERENCE.md
 src/JoyStick_V2_FreeRTOS/docs/PHASE3_TEST_PLAN.md
 src/JoyStick_V2_FreeRTOS/docs/PHASE3_IMPLEMENTATION_STATUS.md
 ```
+
+## Experimental Phase 4 — runtime integration
+
+Phase 4 connects the Phase-1 safety state, Phase-2 authorization model, and Phase-3 calibration/shaping code into the live application path. It adds debounced HMI state, runtime configuration selection, requested-command generation, and a much richer debugger snapshot.
+
+The target configuration backend and target HMI drive-enable mapping remain intentionally unqualified, and the physical RS-485/drive path remains locked out. See `src/JoyStick_V2_FreeRTOS/docs/PHASE4_ARCHITECTURE.md`.

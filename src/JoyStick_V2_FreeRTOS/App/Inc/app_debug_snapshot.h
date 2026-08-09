@@ -1,3 +1,12 @@
+/*
+ * Accessibilita JoyStick Interface Firmware
+ *
+ * License: No project license is declared in this repository at Phase 4.
+ * Do not assume permission to redistribute this project-owned file.
+ *
+ * Coding standard: GhostPCB firmware rules in docs/CODING_STANDARD.md,
+ * informed by MISRA C:2023, CERT C, and JPL/NASA Power of Ten.
+ */
 #ifndef APP_DEBUG_SNAPSHOT_H
 #define APP_DEBUG_SNAPSHOT_H
 
@@ -5,9 +14,12 @@
 #include <stdint.h>
 
 #include "app_types.h"
+#include "configuration_runtime.h"
+#include "hmi_model.h"
 #include "input_diagnostics.h"
+#include "runtime_control.h"
 
-#define APP_PHASE1_DEBUG_SNAPSHOT_MAGIC         (0x50314A53UL) /* "P1JS" */
+#define APP_PHASE1_DEBUG_SNAPSHOT_MAGIC         (0x50344A53UL) /* "P4JS" */
 
 typedef struct
 {
@@ -21,15 +33,19 @@ typedef struct
     AppRawInputSnapshot raw_input;
     InputDiagnosticResult input_diagnostics;
     AppMotorLinkStatus motor_link;
+    AppHmiState hmi;
+    ConfigurationRuntimeState configuration;
+    JoystickProcessedSample processed_joystick;
+    AppRequestedDriveCommand requested_command;
+    AppOperatingMode active_mode;
     AppSafetyState safety_state;
     AppFaultMask active_faults;
+    bool logical_authorized;
+    CommandAuthorizationBlockMask authorization_blocks;
     AppAuthorizedDriveCommand published_command;
 } AppPhase1DebugSnapshot;
 
-/*
- * Debugger-facing mirror only. Application decisions must never read this
- * object because a debugger can observe it mid-update.
- */
+/* Debugger mirror only. Application decisions must never read this object. */
 extern volatile AppPhase1DebugSnapshot g_app_phase1_debug_snapshot;
 
 void AppDebugSnapshot_Init(void);
@@ -41,7 +57,9 @@ void AppDebugSnapshot_Publish(
     const AppRawInputSnapshot *raw_input,
     const InputDiagnosticResult *input_diagnostics,
     const AppMotorLinkStatus *motor_link,
-    const AppSafetyContext *safety_context,
-    const AppAuthorizedDriveCommand *published_command);
+    const AppHmiState *hmi,
+    const ConfigurationRuntimeState *configuration,
+    const RuntimeControlContext *runtime_context,
+    const RuntimeControlOutput *runtime_output);
 
 #endif /* APP_DEBUG_SNAPSHOT_H */

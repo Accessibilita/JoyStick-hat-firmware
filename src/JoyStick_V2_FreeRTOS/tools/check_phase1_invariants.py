@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed when a Phase-1 non-drive invariant is accidentally removed."""
+"""Preserve the original non-drive invariants as later experimental phases evolve."""
 
 from pathlib import Path
 import re
@@ -15,7 +15,12 @@ def text(relative_path: str) -> str:
 
 
 def require(relative_path: str, token: str, reason: str) -> None:
-    if token not in text(relative_path):
+    try:
+        contents = text(relative_path)
+    except OSError as exc:
+        errors.append(f"{relative_path}: cannot read required file: {exc}")
+        return
+    if token not in contents:
         errors.append(f"{relative_path}: {reason}")
 
 
@@ -29,16 +34,19 @@ require(
     '#error "Phase 1 must not enable the present PCB RS-485 data connection."',
     "missing compile-time guard against enabling the blocked physical link",
 )
-require(
-    "App/Src/safety_control_task.c",
+
+# Later phases moved the final physical-zero construction out of Safety Control
+# and into command_authorization.c.  Preserve the behavior, not an obsolete file
+# location from the Phase-1 implementation.
+for token in (
     "command.drive_authorized = false;",
-    "published commands must remain explicitly unauthorized",
-)
-for token in ("command.forward_q15 = 0;", "command.turn_q15 = 0;"):
+    "command.forward_q15 = 0;",
+    "command.turn_q15 = 0;",
+):
     require(
-        "App/Src/safety_control_task.c",
+        "App/Src/command_authorization.c",
         token,
-        "all Phase-1 motion demand fields must be zero",
+        "original Phase-1 non-drive output invariant is missing",
     )
 
 require(
@@ -54,29 +62,25 @@ require(
 require(
     "Core/Inc/FreeRTOSConfig.h",
     "#define configUSE_TIMERS                        0",
-    "the shared timer-daemon task is intentionally absent in Phase 1",
+    "the shared timer-daemon task remains intentionally absent",
 )
 
 main_header = text("Core/Inc/main.h")
-required_pin_tokens = (
+for token in (
     "RS485_nRE_Pin                  GPIO_PIN_8",
     "RS485_DE_Pin                   GPIO_PIN_9",
     "RS485_DI_SAFE_Pin              GPIO_PIN_7",
     "RS485_RO_SENSE_Pin             GPIO_PIN_8",
     "JOYSTICK_Y_Pin                 GPIO_PIN_0",
     "JOYSTICK_X_Pin                 GPIO_PIN_1",
-)
-for token in required_pin_tokens:
+):
     if token not in main_header:
         errors.append(f"Core/Inc/main.h: changed reviewed pin definition: {token}")
 
-# The existing PCB cannot use UART5 because DI and RO land on the opposite MCU
-# directions. Phase 1 must therefore contain no USART/UART driver module.
 for prohibited in ("Core/Src/usart.c", "Core/Inc/usart.h"):
     if (root / prohibited).exists():
         errors.append(f"{prohibited}: UART must remain absent until hardware is revised")
 
-# Ban ordinary heap and dynamic RTOS constructors in hand-owned code.
 hand_owned = list((root / "App").rglob("*.[ch]"))
 hand_owned += list((root / "Platform").rglob("*.[ch]"))
 hand_owned += list((root / "Core").rglob("*.[ch]"))
@@ -96,7 +100,6 @@ for file_path in hand_owned:
         if re.search(pattern, contents):
             errors.append(f"{file_path.relative_to(root)}: prohibited {label}")
 
-# Project metadata must remain parseable for STM32CubeIDE import.
 for relative_path in (".project", ".cproject", ".settings/language.settings.xml"):
     try:
         ET.parse(root / relative_path)

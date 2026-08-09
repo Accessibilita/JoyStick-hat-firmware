@@ -53,7 +53,7 @@ OBJCOPY := $(TOOLCHAIN_PREFIX)objcopy
 SIZE := $(TOOLCHAIN_PREFIX)size
 
 # Host-only goals must not require an installed STM32 package or ARM compiler.
-NON_TARGET_GOALS := host-test host-sanitize host-analyze phase1-check phase2-check phase3-check clean help
+NON_TARGET_GOALS := host-test host-sanitize host-analyze phase1-check phase2-check phase3-check phase4-check clean help
 ifeq ($(strip $(MAKECMDGOALS)),)
 NEED_TARGET_DEPS := 1
 else ifneq ($(strip $(filter-out $(NON_TARGET_GOALS),$(MAKECMDGOALS))),)
@@ -165,7 +165,7 @@ LDFLAGS := $(CPU_FLAGS) -TSTM32F446VETX_FLASH.ld \
   -Wl,--print-memory-usage -static
 LDLIBS := -Wl,--start-group -lc -lm -lgcc -Wl,--end-group
 
-.PHONY: all debug release target clean size flash host-test host-sanitize host-analyze phase1-check phase2-check phase3-check check-tools help
+.PHONY: all debug release target clean size flash host-test host-sanitize host-analyze phase1-check phase2-check phase3-check phase4-check check-tools help
 all: debug
 
 debug:
@@ -226,13 +226,16 @@ phase2-check: phase1-check
 phase3-check: phase2-check
 	python3 tools/check_phase3_invariants.py
 
-host-test: phase3-check
+phase4-check: phase3-check
+	python3 tools/check_phase4_invariants.py
+
+host-test: phase4-check
 	$(MAKE) -C tests/host test
 
-host-sanitize: phase3-check
+host-sanitize: phase4-check
 	$(MAKE) -C tests/host sanitize
 
-host-analyze: phase3-check
+host-analyze: phase4-check
 	$(MAKE) -C tests/host analyze
 
 clean:
@@ -241,12 +244,13 @@ clean:
 
 help:
 	@printf '%s\n' \
-	  'make host-test     Run Phase-1 + Phase-2 + Phase-3 portable host tests' \
+	  'make host-test     Run Phase-1 + Phase-2 + Phase-3 + Phase-4 portable host tests' \
 	  'make host-sanitize Run all host tests under ASan + UBSan' \
-	  'make host-analyze  Run GCC -fanalyzer on Phase-2 + Phase-3 host code' \
+	  'make host-analyze  Run GCC -fanalyzer on Phase-2 + Phase-3 + Phase-4 host code' \
 	  'make phase1-check  Verify original non-drive Phase-1 invariants' \
 	  'make phase2-check  Verify Phase-2 protocol + physical-inhibit invariants' \
 	  'make phase3-check  Verify Phase-3 config/shaping + physical-inhibit invariants' \
+	  'make phase4-check  Verify Phase-4 runtime/HMI + physical-inhibit invariants' \
 	  'make debug         Build target Debug ELF/HEX/BIN' \
 	  'make release      Build target Release ELF/HEX/BIN' \
 	  'make flash        Flash Debug ELF through STM32CubeProgrammer'

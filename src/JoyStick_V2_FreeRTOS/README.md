@@ -252,3 +252,9 @@ make release
 ```
 
 `configuration_valid` in the live Safety Control task remains false and `APP_RS485_PHYSICAL_LINK_ENABLE` remains zero. Experimental means we are allowed to get ahead on software. It does not mean the hardware facts stop mattering.
+
+## Phase 4 on `experimental`
+
+The application now runs the real software pipeline from validated configuration and joystick processing through safety observation and command authorization. Host tests are allowed to inject valid configuration/HMI state and prove non-zero requested motion. The target build still cannot turn that into physical motion.
+
+The HMI task debounces and publishes raw button/rotary state, but final drive-enable semantics remain invalid until hardware testing. The target configuration storage backend likewise reports unavailable until STM32 flash behavior is validated.

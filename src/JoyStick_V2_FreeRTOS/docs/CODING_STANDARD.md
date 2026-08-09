@@ -86,3 +86,14 @@ Warnings are errors for application-owned code.
 Vendor code gets a compatibility warning policy because importing somebody else's historical HAL is not a reason to weaken our rules, and fixing thousands of upstream formatting/style issues is not a useful firmware feature either.
 
 Keep those two worlds separate.
+
+## Owned-file header policy
+
+New or materially rewritten project-owned C/H files state two things in the file header:
+
+- the repository's actual licensing status; and
+- that the file follows the GhostPCB firmware coding rules informed by MISRA C:2023, CERT C, and JPL/NASA Power of Ten.
+
+Do not invent an SPDX identifier. At Phase 4 this repository has no project-level `LICENSE`, so new owned files say that explicitly. Vendor sources keep their upstream notices and are not rewritten to look project-owned.
+
+Comments are part of the engineering record. Safety-relevant code should explain ownership, failure behavior, units, state transitions, and why a guard exists when the reason is not obvious. Comments should explain the system rather than narrate C syntax.
