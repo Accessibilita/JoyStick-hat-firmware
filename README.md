@@ -1,95 +1,50 @@
 # JoyStick Interface Firmware
 
-Firmware for the Accessibilita joystick interface board.
+Firmware for the Accessibilita joystick interface platform.
 
-This repository contains the STM32 firmware that sits between the joystick/HMI hardware and the eventual motor-control link.
+> **Branch: `main` — stable / release-facing history.** This is intentionally not the newest development branch. Hardware-facing development is on `edge`; ahead-of-hardware software work is on `experimental`.
 
-The original codebase was largely a Cube-generated FreeRTOS starting point. Current development is replacing that scaffold with an architecture where the important boundaries are explicit: acquisition, diagnostics, safety state, requested motion, and authorized motion are separate things.
+The project is built around one non-negotiable boundary:
 
-That matters because a joystick ADC count should never become a motor command just because enough functions passed it along.
+**Raw joystick data is not a motor command.**
 
-## Active development
+Acquisition, diagnostics, calibration, requested motion, safety state, communications state, logical authorization, and physical output authority are separate things so each can be reasoned about and tested.
 
-The safety-first rewrite is currently being developed on:
+## Where the branches are
 
-```text
-agent/phase1-safety-foundation
-```
+| Branch | What a reader should expect |
+|---|---|
+| `main` | stable historical / release-facing baseline |
+| `edge` | Phase-1 safety foundation and hardware-facing bring-up baseline |
+| `experimental` | Phase-1 through Phase-5 software architecture, integration, and full-system fault simulation |
 
-The STM32 project on that branch lives at:
+Read [`docs/BRANCH_MODEL.md`](docs/BRANCH_MODEL.md) before assuming the newest phase belongs on this branch.
 
-```text
-src/JoyStick_V2_FreeRTOS/
-```
+## Current project state
 
-Phase 1 is deliberately not drive-capable.
+The newest `experimental` milestone has reached **software validation through Phase 5 and successful STM32 target builds**. The complete electromechanical system is **not hardware-validated**, the physical drive path remains inhibited, and several hardware facts remain unresolved.
 
-It establishes the boring-but-critical foundation first:
+This `main` branch is intentionally behind that work. Its job is stability, not pretending to be current development.
 
-- deterministic dual-axis joystick acquisition
-- timer-triggered ADC + DMA
-- input diagnostics and freshness checking
-- explicit safety state
-- static FreeRTOS application architecture
-- task-health supervision
-- watchdog ownership
-- debugger visibility
-- reproducible firmware dependencies
-- a hard authorization boundary before anything can become a drive command
+## Roadmap
 
-The basic model is:
+[`docs/ROADMAP.md`](docs/ROADMAP.md) records Phases 1–5 and the next bench milestones: board startup, CHC-104B-M2 characterization, HMI truth tables, RS-485 physical-layer resolution, motor-controller integration, flash validation, and controlled motion testing.
 
-```text
-Raw inputs
-    ↓
-Diagnostics
-    ↓
-Safety state
-    ↓
-Requested command
-    ↓
-Authorization
-    ↓
-AuthorizedDriveCommand
-```
+## Engineering standard
 
-The current Phase-1 implementation keeps the final authorization inhibited.
+Project-owned code follows [`docs/CODING_STANDARD.md`](docs/CODING_STANDARD.md), informed by MISRA C:2023, CERT C, and JPL/NASA Power-of-Ten principles without claiming formal MISRA certification.
 
-## Development baseline
+## License
 
-Current Phase-1 work uses:
+Project-owned source is covered by **Mozilla Public License 2.0 (MPL-2.0)**. See [`LICENSE`](LICENSE) and [`docs/LICENSING.md`](docs/LICENSING.md). Imported STM32/CMSIS/FreeRTOS code keeps its upstream terms.
 
-```text
-STM32CubeIDE 2.2.0
-GNU Tools for STM32 14.3.rel1
-arm-none-eabi-gcc 14.3.1
-```
+## Read these first
 
-The embedded firmware dependencies remain pinned to the original STM32CubeF4 V1.28.1 project baseline.
+- [`docs/BRANCH_MODEL.md`](docs/BRANCH_MODEL.md)
+- [`docs/ROADMAP.md`](docs/ROADMAP.md)
+- [`docs/VALIDATION_LEVELS.md`](docs/VALIDATION_LEVELS.md)
+- [`docs/CODING_STANDARD.md`](docs/CODING_STANDARD.md)
+- [`docs/LICENSING.md`](docs/LICENSING.md)
+- [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
-Keeping the compiler/tooling and the target firmware package as separate controlled dependencies is intentional.
-
-## Hardware reality
-
-There are known hardware constraints under active review.
-
-The current board has an RS-485/UART direction conflict around the MAX3535 and PE7/PE8 mapping, so the Phase-1 firmware does not enable that physical drive path.
-
-The joystick is also single-channel per axis, which limits the faults that can be distinguished electrically from legitimate endpoint commands.
-
-Those are documented engineering constraints, not things firmware should hide.
-
-## Status
-
-The active Phase-1 branch currently passes its source invariants and clean Debug/Release target builds.
-
-Physical board execution and fault-injection testing are still pending.
-
-A successful build is the point where hardware bring-up can start. It is not a claim that the complete machine has been qualified.
-
-For the current architecture, build instructions, dependency revisions, hardware pin map, blockers, and bring-up notes, switch to `agent/phase1-safety-foundation` and read:
-
-```text
-src/JoyStick_V2_FreeRTOS/README.md
-src/JoyStick_V2_FreeRTOS/docs/
-```
+A build is evidence that software can become a binary. It is not evidence that the machine is safe to move a person.
