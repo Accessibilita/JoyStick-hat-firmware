@@ -1,118 +1,65 @@
-# Phase 1 Implementation Status
+# Implementation status — `edge`
 
-Phase 1 has crossed the line from generated scaffold to real firmware.
+`edge` is the hardware-facing Phase-1 baseline.
 
-It is still intentionally incapable of driving the chair.
+It is deliberately less feature-rich than `experimental` and deliberately more conservative about what it claims.
 
-Those two statements are both important.
+## Implemented on this branch
 
-## Working now
-
-The current tree implements:
-
-- conventional STM32CubeIDE project metadata plus a project-owned GNU Makefile
-- STM32F446VET6 startup and peripheral foundation
-- 96 MHz HSE/PLL system clock
-- four statically allocated application tasks
-- statically allocated queues/mailboxes
-- dynamic application allocation disabled
-- TIM2-triggered 1 kHz ADC1 scan
-- PA0 and PA1 joystick acquisition
-- circular DMA
-- five samples per axis per safety batch
-- DMA half/full completion notification
-- sequence tracking and change-while-copying detection
-- acquisition freshness checking
-- ADC error/overrun tracking
-- joystick range diagnostics
-- regulator 3.3 V PG observation
+- STM32F446VET6 startup/peripheral foundation
+- 96 MHz HSE/PLL clock setup
+- static Safety / RS-485 / HMI / Diagnostics tasks
+- static queues/mailboxes
+- TIM2-triggered ADC1 scan of PA0/PA1
+- circular DMA with bounded sample batches
+- acquisition sequence/freshness/race diagnostics
+- joystick plausibility checks
+- regulator power-good observation
 - neutral qualification
 - safety-state-machine foundation
-- explicit `AuthorizedDriveCommand`
-- one-element overwrite command mailbox
-- mandatory-task health supervision
+- explicit authorized-command boundary
+- task-health supervision
 - Safety-Control-owned IWDG refresh
-- debugger watchdog freeze in Debug builds
-- safe LED blanking
+- debugger watchdog freeze for Debug
 - forced-disabled RS-485 driver
-- debugger snapshot `g_app_phase1_debug_snapshot`
-- host-side tests
-- source/project invariant checks
+- debugger snapshot
+- Phase-1 host/invariant checks
+- Debug/Release target build flow
 
-## Deliberately absent
+## Not on this branch
 
-Phase 1 does not contain:
+The following later work exists on `experimental`, not `edge`:
 
-- motor command transmission
-- a production RS-485 protocol
-- a valid drive authorization state
-- persistent runtime calibration
-- production joystick response curves
-- production speed profiles
-- finished button/rotary interpretation
-- finished LED protocol
-- USB/service behavior
-- production motor-controller synchronization
-- an argument that this firmware is ready to move a person
+- finalized software motor-protocol model
+- motor-link session/sequence qualification
+- calibration/configuration/Q15 shaping
+- runtime configuration authority
+- HMI operating-mode model
+- full-system Phase-5 simulator/fault campaign
+- Phase-5 linker RX/WX policy
 
-## Build status
+## Hardware validation
 
-The target firmware has now been built successfully from the actual Git checkout using:
+Still pending:
 
-```text
-STM32CubeIDE 2.2.0
-GNU Tools for STM32 14.3.rel1
-arm-none-eabi-gcc 14.3.1
-```
-
-Validated:
-
-```text
-make phase1-check    PASS
-make debug           PASS
-make release         PASS
-```
-
-Debug and Release generate ELF, Intel HEX, and raw BIN images.
-
-The firmware dependencies have also been pulled back to the exact STM32CubeF4 V1.28.1 baseline used by the original project.
-
-That gives us a reproducible combination of a modern development toolchain and a controlled historical firmware platform.
-
-## What is not validated
-
-The physical board is not currently available for acceptance testing.
-
-So we are **not** claiming validation of:
-
-- startup on the STM32F446
-- actual ADC voltage/count behavior
-- DMA timing on silicon
-- joystick noise and real mechanical center
+- startup/reset on the actual board
+- ADC voltage/count characterization
+- TIM2/DMA timing on silicon
+- CHC-104B-M2 center/noise/endpoints
 - open/short fault behavior
-- 3.3 V PG timing
+- regulator PG timing
 - watchdog reset behavior on target
-- debugger snapshot coherence on target
-- GPIO startup levels measured at the board
+- GPIO safe-state measurements
 - physical RS-485 behavior
 - motor-controller integration
 
-A build is evidence that the software is internally coherent enough to become a binary.
+## Known blockers
 
-It is not evidence that the complete electromechanical system is safe.
+- PE7/PE8 physical RS-485/UART direction mismatch
+- single-channel potentiometer sensing cannot distinguish every electrical failure from a valid endpoint command
 
-## Remaining software cleanup
+## Next move for `edge`
 
-Known non-fatal cleanup includes:
+Hardware bring-up.
 
-- explicitly define the HAL SPI `USE_SPI_CRC` setting
-- provide deliberate newlib syscall behavior instead of relying on `nosys` warnings
-- inspect and eliminate the RWX ELF LOAD-segment warning
-- continue extending host-side fault tests
-- build the actual RS-485 protocol only after the physical link definition is resolved
-
-## Next useful work
-
-The next meaningful milestone is hardware bring-up.
-
-That means proving the assumptions in this repository against an actual board instead of adding more features on top of assumptions.
+The software model on `experimental` tells us what to measure. `edge` is where the measurements start becoming authoritative.
