@@ -11,11 +11,11 @@ Project-owned firmware uses a conservative C11 subset informed by **MISRA C:2023
 The strict rules apply to project-owned code and build logic, primarily:
 
 ```text
-App/
-Platform/
-Core/
-tests/host/
-tools/
+src/JoyStick_V2_FreeRTOS/App/
+src/JoyStick_V2_FreeRTOS/Platform/
+src/JoyStick_V2_FreeRTOS/Core/
+src/JoyStick_V2_FreeRTOS/tests/host/
+src/JoyStick_V2_FreeRTOS/tools/
 project-owned Makefiles / linker scripts
 ```
 

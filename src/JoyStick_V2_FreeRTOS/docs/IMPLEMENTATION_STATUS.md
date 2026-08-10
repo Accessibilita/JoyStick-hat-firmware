@@ -1,118 +1,107 @@
-# Phase 1 Implementation Status
+# Implementation status — `experimental`
 
-Phase 1 has crossed the line from generated scaffold to real firmware.
+`experimental` is currently at **Phase 5: full-system software fault simulation**.
 
-It is still intentionally incapable of driving the chair.
+The branch is allowed to get ahead of hardware, but it still follows the same coding and evidence rules as the hardware-facing branches.
 
-Those two statements are both important.
+## Implemented
 
-## Working now
+### Phase 1 — safety foundation
 
-The current tree implements:
+- deterministic ADC/DMA joystick acquisition
+- freshness/plausibility diagnostics
+- explicit SafetyState
+- static RTOS ownership
+- task-health supervision
+- Safety-Control-owned watchdog
+- debugger snapshot
+- physical RS-485 lockout
 
-- conventional STM32CubeIDE project metadata plus a project-owned GNU Makefile
-- STM32F446VET6 startup and peripheral foundation
-- 96 MHz HSE/PLL system clock
-- four statically allocated application tasks
-- statically allocated queues/mailboxes
-- dynamic application allocation disabled
-- TIM2-triggered 1 kHz ADC1 scan
-- PA0 and PA1 joystick acquisition
-- circular DMA
-- five samples per axis per safety batch
-- DMA half/full completion notification
-- sequence tracking and change-while-copying detection
-- acquisition freshness checking
-- ADC error/overrun tracking
-- joystick range diagnostics
-- regulator 3.3 V PG observation
-- neutral qualification
-- safety-state-machine foundation
-- explicit `AuthorizedDriveCommand`
-- one-element overwrite command mailbox
-- mandatory-task health supervision
-- Safety-Control-owned IWDG refresh
-- debugger watchdog freeze in Debug builds
-- safe LED blanking
-- forced-disabled RS-485 driver
-- debugger snapshot `g_app_phase1_debug_snapshot`
-- host-side tests
-- source/project invariant checks
+### Phase 2 — motor-link model
 
-## Deliberately absent
+- fixed 32-byte command/status frames
+- explicit source/destination addressing
+- CRC16/CCITT-FALSE
+- sessions and sequence acknowledgements
+- MotorLinkState qualification/restart/timeout/fault handling
+- fake motor controller
+- logical authorization model with physical zero boundary
 
-Phase 1 does not contain:
+### Phase 3 — calibration/configuration/shaping
 
-- motor command transmission
-- a production RS-485 protocol
-- a valid drive authorization state
-- persistent runtime calibration
-- production joystick response curves
-- production speed profiles
-- finished button/rotary interpretation
-- finished LED protocol
-- USB/service behavior
-- production motor-controller synchronization
-- an argument that this firmware is ready to move a person
+- CHC-104B-M2 reference profile
+- asymmetric min/center/max calibration model
+- guarded endpoints/deadband
+- signed Q15 normalization
+- integer response shaping
+- speed limiting
+- two-slot versioned CRC-protected configuration record model
 
-## Build status
+### Phase 4 — runtime integration
 
-The target firmware has now been built successfully from the actual Git checkout using:
+- runtime configuration authority plumbing
+- debounced HMI state model
+- explicit operating modes
+- real requested-command generation
+- expanded debugger state
+- target storage/HMI drive semantics intentionally fail-closed
 
-```text
-STM32CubeIDE 2.2.0
-GNU Tools for STM32 14.3.rel1
-arm-none-eabi-gcc 14.3.1
-```
+### Phase 5 — system abuse
 
-Validated:
+- deterministic system simulator using the real application modules
+- logical drive authorization reachable in simulation
+- physical command still independently zero/unauthorized
+- controller restart and remote-fault requalification
+- CRC/stale ACK/silence/timeout campaigns
+- configuration/task/power/ADC fault injection
+- calibration/service-mode zero ceilings
+- reboot-with-displaced-stick cases
+- 32-bit tick wrap test
+- 20,000-step deterministic abuse campaign
+- explicit ELF RX FLASH / RW RAM program-header policy
+
+## Phase-5 software acceptance
 
 ```text
-make phase1-check    PASS
-make debug           PASS
-make release         PASS
+Phase 1–5 invariants                    PASS
+Phase 1–5 host tests                    PASS
+ASan + UBSan                            PASS
+GCC -fanalyzer                          PASS
+full-system fault campaign              PASS
+STM32 Debug build                       PASS
+STM32 Release build                     PASS
+Debug/Release ELF no-RWX check          PASS
 ```
 
-Debug and Release generate ELF, Intel HEX, and raw BIN images.
+## Target footprint at Phase 5
 
-The firmware dependencies have also been pulled back to the exact STM32CubeF4 V1.28.1 baseline used by the original project.
+```text
+Debug   FLASH 21,300 B   RAM 9,856 B
+Release FLASH 20,324 B   RAM 9,856 B
+```
 
-That gives us a reproducible combination of a modern development toolchain and a controlled historical firmware platform.
+## Still not hardware-validated
 
-## What is not validated
+- complete board startup/safe-state behavior
+- CHC-104B-M2 real electrical/mechanical characteristics
+- ADC/DMA timing on silicon
+- HMI electrical mapping and final enable semantics
+- STM32 flash transaction behavior under interruption/brownout
+- physical RS-485 link
+- motor-controller safe-state/timeout/brake behavior
+- complete electromechanical system
 
-The physical board is not currently available for acceptance testing.
+## Current physical-output statement
 
-So we are **not** claiming validation of:
+```text
+Physical drive:                 LOCKED OUT
+Target configuration storage:   UNQUALIFIED / DISABLED
+Target HMI drive-enable mapping: UNQUALIFIED / DISABLED
+Hardware validation:            NOT CLAIMED
+```
 
-- startup on the STM32F446
-- actual ADC voltage/count behavior
-- DMA timing on silicon
-- joystick noise and real mechanical center
-- open/short fault behavior
-- 3.3 V PG timing
-- watchdog reset behavior on target
-- debugger snapshot coherence on target
-- GPIO startup levels measured at the board
-- physical RS-485 behavior
-- motor-controller integration
+## Next meaningful milestone
 
-A build is evidence that the software is internally coherent enough to become a binary.
+Hardware validation.
 
-It is not evidence that the complete electromechanical system is safe.
-
-## Remaining software cleanup
-
-Known non-fatal cleanup includes:
-
-- explicitly define the HAL SPI `USE_SPI_CRC` setting
-- provide deliberate newlib syscall behavior instead of relying on `nosys` warnings
-- inspect and eliminate the RWX ELF LOAD-segment warning
-- continue extending host-side fault tests
-- build the actual RS-485 protocol only after the physical link definition is resolved
-
-## Next useful work
-
-The next meaningful milestone is hardware bring-up.
-
-That means proving the assumptions in this repository against an actual board instead of adding more features on top of assumptions.
+The architecture has reached the point where more software can still be written, but several decisive answers belong to scopes, logic analyzers, debuggers, power interruption, the real CHC-104B-M2, the PCB, and the motor controller.
